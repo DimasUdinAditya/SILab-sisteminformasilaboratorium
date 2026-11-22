@@ -6,7 +6,7 @@ import { LabCatalog } from "@/components/labman/lab-catalog";
 import { labsQuery } from "@/lib/labman-queries";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { FlaskConical, Loader2, Minus, Plus, Send, Trash2 } from "lucide-react";
+import { FlaskConical, Loader2, Minus, Plus, Send, ShoppingBasket, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
