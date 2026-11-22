@@ -10,7 +10,7 @@ type Run = { text: string; bold: boolean };
 type TextBlock = { kind: "text"; runs: Run[]; align: Align; size: number; bold: boolean; bullet?: string | undefined; space: number };
 type Block =
   | TextBlock
-  | { kind: "row"; cells: Run[][]; header: boolean; equal: boolean; aligns: Align[] }
+  | { kind: "row"; cells: Run[][]; header: boolean; equal: boolean; aligns: Align[]; gap?: number }
   | { kind: "hr" }
   | { kind: "signature"; align: Align; who: "kalab" | "dean"; col: "left" | "right" | null };
 
@@ -148,7 +148,12 @@ export function parseHtml(input: string): Block[] {
       } else if (tag === "tr") {
         if (row) blocks.push({ kind: "row", ...row });
         row = null;
-      } else if (tag === "table") flush();
+      } else if (tag === "table") {
+        flush();
+        // Space after a table, so the next block (e.g. the signature area) does not touch it.
+        const last = blocks[blocks.length - 1];
+        if (last && last.kind === "row") last.gap = 22;
+      }
     }
   }
   flush();
@@ -303,7 +308,7 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
         y -= 2;
       }
       const next = blocks[bi + 1];
-      if (!next || next.kind !== "row") y -= 18;
+      if (!next || next.kind !== "row") y -= 8 + (b.gap ?? 0);
     } else {
       const size = b.size;
       const lh = size * 1.45;
