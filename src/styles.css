@@ -1,0 +1,236 @@
+/*
+ * Tailwind v4 entry: config lives here, with no tailwind.config.js or PostCSS plugin.
+ * Keep every @import in this top block. Web fonts load via <link> in src/routes/__root.tsx.
+ */
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * SiLab design system
+ * Primary #479AD8, Secondary #1166B1, white sidebar, active nav = primary.
+ * Headings: Plus Jakarta Sans. Body: Inter.
+ */
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(0.982 0.005 240);
+  --surface: oklch(1 0 0);
+  --foreground: oklch(0.24 0.03 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.03 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.03 255);
+  --primary: oklch(0.662 0.123 243.9);
+  --primary-foreground: oklch(1 0 0);
+  --primary-soft: oklch(0.95 0.025 243.9);
+  --secondary: oklch(0.505 0.14 251.4);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.962 0.008 245);
+  --muted-foreground: oklch(0.52 0.025 255);
+  --accent: oklch(0.95 0.025 243.9);
+  --accent-foreground: oklch(0.505 0.14 251.4);
+  --destructive: oklch(0.577 0.2 27);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.52 0.13 155);
+  --success-soft: oklch(0.95 0.04 155);
+  --warning: oklch(0.58 0.13 70);
+  --warning-soft: oklch(0.96 0.05 85);
+  --danger-soft: oklch(0.95 0.035 27);
+  --info: oklch(0.505 0.14 251.4);
+  --info-soft: oklch(0.95 0.025 243.9);
+  --border: oklch(0.915 0.012 245);
+  --input: oklch(0.89 0.014 245);
+  --ring: oklch(0.662 0.123 243.9);
+  --chart-1: oklch(0.662 0.123 243.9);
+  --chart-2: oklch(0.505 0.14 251.4);
+  --chart-3: oklch(0.52 0.13 155);
+  --chart-4: oklch(0.58 0.13 70);
+  --chart-5: oklch(0.577 0.2 27);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.36 0.03 255);
+  --sidebar-primary: oklch(0.662 0.123 243.9);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.962 0.012 243.9);
+  --sidebar-accent-foreground: oklch(0.24 0.03 255);
+  --sidebar-border: oklch(0.93 0.01 245);
+  --sidebar-ring: oklch(0.662 0.123 243.9);
+
+  --gradient-hero: linear-gradient(135deg, oklch(0.505 0.14 251.4), oklch(0.662 0.123 243.9));
+  --shadow-card: 0 1px 2px oklch(0.24 0.03 255 / 4%), 0 4px 16px -8px oklch(0.24 0.03 255 / 10%);
+  --shadow-elevated: 0 20px 50px -20px oklch(0.505 0.14 251.4 / 35%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    font-family: var(--font-sans);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Date fields: the shadcn Input sets display:flex, which makes Chrome hug the
+   calendar icon to the date text. Restore the browser layout so the icon sits
+   at the right end of the (full-width) field. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  display: inline-block;
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="week"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+}
+
+@utility bg-hero {
+  background-image: var(--gradient-hero);
+}
+
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+@utility shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Lecturer-authored rich text (materi, prosedur) */
+.rich-text {
+  line-height: 1.65;
+}
+.rich-text > * + * {
+  margin-top: 0.6em;
+}
+.rich-text h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.rich-text h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.rich-text ul {
+  list-style: disc;
+  padding-left: 1.4rem;
+}
+.rich-text ol {
+  list-style: decimal;
+  padding-left: 1.4rem;
+}
+.rich-text blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 0.8rem;
+  color: var(--color-muted-foreground);
+}
+.rich-text a {
+  color: var(--color-secondary);
+  text-decoration: underline;
+}
+
+/* Letter preview paper (Preview Surat) */
+.letter-paper {
+  padding: 2.5rem 3rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--card-foreground);
+  background: var(--surface);
+}
+.letter-paper h2 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.15rem; }
+.letter-paper h3 { font-size: 1rem; font-weight: 700; margin: 1rem 0 0.25rem; }
+.letter-paper p { margin: 0 0 0.5rem; }
+.letter-paper hr { border: 0; border-top: 1.5px solid var(--foreground); margin: 0.75rem 0 1rem; }
+.letter-paper table { margin: 0.5rem 0 1rem; border-collapse: collapse; }
+.letter-paper td { padding: 0.15rem 0; vertical-align: top; }
+.letter-paper td:first-child { width: 10rem; padding-right: 1rem; }
+.letter-paper td:first-child::after { content: ":"; float: right; margin-right: -0.75rem; }
+.letter-paper td:last-child { padding-left: 1rem; }
+.letter-paper ol { list-style: decimal; padding-left: 1.5rem; margin: 0 0 0.75rem; }
+.letter-paper ul { list-style: disc; padding-left: 1.5rem; margin: 0 0 0.75rem; }
+.letter-sig-blank { height: 4rem; }
+.letter-watermark {
+  transform: rotate(-28deg);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: color-mix(in oklch, var(--destructive) 22%, transparent);
+  border: 6px solid color-mix(in oklch, var(--destructive) 22%, transparent);
+  padding: 0.25rem 1.5rem;
+  border-radius: 0.75rem;
+  white-space: nowrap;
+}
