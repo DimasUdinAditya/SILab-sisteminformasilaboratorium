@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { htmlToPdf } from "@/lib/html-pdf";
 import { formatDateTime } from "@/lib/labman";
 import { fillTemplate, toLetterData, type LetterKind, type LetterSource } from "@/lib/letter-template";
 import { getLetterLink, issueOfficialLetter } from "@/lib/letters.actions";
@@ -129,7 +130,24 @@ export function LetterCard({ kind, id, status, source, canIssue }: Props) {
 
 function DraftPreviewDialog({ open, onOpenChange, kind, source }: { open: boolean; onOpenChange: (o: boolean) => void; kind: LetterKind; source: LetterSource }) {
   const { data: template, isLoading } = useQuery({ ...templateQuery(kind), enabled: open });
-  const html = template ? fillTemplate(template.template_html, toLetterData(source), '<div class="letter-sig-blank"></div>') : "";
+  const [url, setUrl] = useState<string | null>(null);
+  // The draft is the same PDF layout as the official letter, without signatures and with a watermark.
+  useEffect(() => {
+    if (!open || !template) return;
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    const html = fillTemplate(template.template_html, toLetterData(source), "");
+    htmlToPdf(html, { watermark: "BELUM DISETUJUI", footer: "Pratinjau surat" }).then((bytes) => {
+      if (cancelled) return;
+      objectUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "application/pdf" }));
+      setUrl(objectUrl);
+    });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setUrl(null);
+    };
+  }, [open, template, source]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
@@ -139,13 +157,9 @@ function DraftPreviewDialog({ open, onOpenChange, kind, source }: { open: boolea
         </DialogHeader>
         {isLoading && <p className="text-sm text-muted-foreground">Memuat…</p>}
         {!isLoading && !template && <p className="text-sm text-muted-foreground">Template surat belum tersedia.</p>}
-        {template && (
-          <div className="relative overflow-hidden rounded-lg border bg-surface" onContextMenu={(e) => e.preventDefault()}>
-            <div className="letter-paper select-none" dangerouslySetInnerHTML={{ __html: html }} />
-            <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="letter-watermark">BELUM DISETUJUI</span>
-            </div>
-          </div>
+        {template && !url && <p className="text-sm text-muted-foreground">Menyiapkan pratinjau…</p>}
+        {template && url && (
+          <iframe title="Pratinjau surat" src={url} className="h-[70vh] w-full rounded-lg border bg-white" />
         )}
       </DialogContent>
     </Dialog>

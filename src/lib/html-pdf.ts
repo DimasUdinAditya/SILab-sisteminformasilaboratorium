@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
+import { degrees, PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 
 /**
  * Minimal HTML → PDF renderer for letters and reports. Supports the subset our
@@ -170,6 +170,8 @@ export type RenderOptions = {
   deanSignature?: { bytes: Uint8Array; mime: string } | null;
   /** Small grey text at the bottom of every page. */
   footer?: string;
+  /** Large faint diagonal text across every page (used for drafts). */
+  watermark?: string;
 };
 
 const A4: [number, number] = [595.28, 841.89];
@@ -319,6 +321,14 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
     }
   }
 
+  if (opts.watermark) {
+    for (const p of doc.getPages()) {
+      const { width, height } = p.getSize();
+      const size = 56;
+      const tw = boldFont.widthOfTextAtSize(opts.watermark, size);
+      p.drawText(opts.watermark, { x: width / 2 - (tw / 2) * Math.cos(Math.PI / 6), y: height / 2 - (tw / 2) * Math.sin(Math.PI / 6), size, font: boldFont, color: rgb(0.85, 0.2, 0.2), opacity: 0.22, rotate: degrees(30) });
+    }
+  }
   if (opts.footer) {
     const pages = doc.getPages();
     pages.forEach((p, i) => {
