@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { htmlToPdf } from "@/lib/html-pdf";
 import { formatDateTime } from "@/lib/labman";
-import { fillTemplate, toLetterData, type LetterKind, type LetterSource } from "@/lib/letter-template";
+import { DEAN_SIGNATURE_MARKER, fillTemplate, SIGNATURE_MARKER, toLetterData, type LetterKind, type LetterSource } from "@/lib/letter-template";
 import { getLetterLink, issueOfficialLetter } from "@/lib/letters.actions";
 import { documentQuery, templateQuery } from "@/lib/letters-queries";
 
@@ -136,7 +136,8 @@ function DraftPreviewDialog({ open, onOpenChange, kind, source }: { open: boolea
     if (!open || !template) return;
     let objectUrl: string | null = null;
     let cancelled = false;
-    const html = fillTemplate(template.template_html, toLetterData(source), "");
+    // Signature markers keep the same vertical space as the official letter; nothing is drawn for a draft.
+    const html = fillTemplate(template.template_html, toLetterData(source), SIGNATURE_MARKER, DEAN_SIGNATURE_MARKER);
     htmlToPdf(html, { watermark: "BELUM DISETUJUI", footer: "Pratinjau surat" }).then((bytes) => {
       if (cancelled) return;
       objectUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "application/pdf" }));

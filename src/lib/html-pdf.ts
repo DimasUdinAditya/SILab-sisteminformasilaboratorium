@@ -131,7 +131,13 @@ export function parseHtml(input: string): Block[] {
         flush();
         if (alignStack.length > 1) alignStack.pop();
       } else if (tag === "b" || tag === "strong") bold = Math.max(0, bold - 1);
-      else if (tag === "ol" || tag === "ul") lists.pop();
+      else if (tag === "ol" || tag === "ul") {
+        lists.pop();
+        // Give the list some room before the next block (e.g. the signature area).
+        flush();
+        const last = blocks[blocks.length - 1];
+        if (last && last.kind === "text") last.space += 18;
+      }
       else if (tag === "td" || tag === "th") {
         if (tag === "th") bold = Math.max(0, bold - 1);
         if (row && cell) {

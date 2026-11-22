@@ -77,7 +77,7 @@ export function fillTemplate(template: string, data: LetterData, signatureHtml: 
     waktu: escapeHtml(data.waktu),
     daftar_item: itemsHtml(data.items),
     tanggal_persetujuan: escapeHtml(data.tanggal_persetujuan),
-    nama_kalab: escapeHtml(data.nama_kalab),
+    nama_kalab: escapeHtml(data.nama_kalab || "(………………………………)"),
     tanda_tangan: signatureHtml,
     tanda_tangan_dekan: deanSignatureHtml,
     nama_dekan: escapeHtml(deanName || "(………………………………)"),
