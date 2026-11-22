@@ -1,8 +1,7 @@
 "use client";
 
-import { Link } from "@/lib/router-compat";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ImageOff, Info, Plus, ShoppingBasket } from "lucide-react";
+import { Check, ImageOff, Info, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -100,11 +99,6 @@ export function LabCatalog({ lab }: { lab: { id: string; name: string } }) {
           <h2 className="text-base font-semibold">Alat & bahan</h2>
           <p className="text-xs text-muted-foreground">Tambahkan ke keranjang, lalu ajukan peminjaman paling lambat H-1.</p>
         </div>
-        <Button asChild variant={c.items.length ? "default" : "outline"}>
-          <Link to="/peminjaman/ajukan">
-            <ShoppingBasket /> Keranjang{c.items.length ? ` (${c.items.length})` : ""}
-          </Link>
-        </Button>
       </div>
 
       {isLoading && <p className="py-8 text-center text-sm text-muted-foreground">Memuat…</p>}
@@ -170,12 +164,33 @@ function CatalogCard({ row: r, added, onAdd }: { row: Row; added: boolean; onAdd
           )}
         </div>
       </div>
-      <CatalogDetail row={r} photoUrl={photoUrl ?? null} open={detailOpen} onOpenChange={setDetailOpen} />
+      <CatalogDetail
+        row={r}
+        photoUrl={photoUrl ?? null}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        added={added}
+        onAdd={onAdd}
+      />
     </article>
   );
 }
 
-function CatalogDetail({ row: r, photoUrl, open, onOpenChange }: { row: Row; photoUrl: string | null; open: boolean; onOpenChange: (o: boolean) => void }) {
+function CatalogDetail({
+  row: r,
+  photoUrl,
+  open,
+  onOpenChange,
+  added,
+  onAdd,
+}: {
+  row: Row;
+  photoUrl: string | null;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  added: boolean;
+  onAdd: () => void;
+}) {
   const { data: certUrl } = useLabFileUrl("calibration-certificates", open ? r.certificate : null);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -199,6 +214,13 @@ function CatalogDetail({ row: r, photoUrl, open, onOpenChange }: { row: Row; pho
             </div>
           ))}
         </dl>
+        {r.blocked ? (
+          <p className="text-sm text-muted-foreground">{r.blocked}</p>
+        ) : (
+          <Button aria-label={`Tambah ${r.name} ke keranjang`} onClick={onAdd} className="w-full">
+            {added ? <Check /> : <Plus />} {added ? "Tambah lagi ke keranjang" : "Tambah ke keranjang"}
+          </Button>
+        )}
         {r.certificate && (
           <p className="text-sm">
             {certUrl ? (

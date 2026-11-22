@@ -92,7 +92,7 @@ export default function BorrowFormPage() {
       {c.items.length > 0 && (
         <a
           href="#keranjang"
-          className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+          className="fixed right-6 top-20 z-30 flex items-center gap-3 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
         >
           <ShoppingBasket className="size-5" />
           <span>
