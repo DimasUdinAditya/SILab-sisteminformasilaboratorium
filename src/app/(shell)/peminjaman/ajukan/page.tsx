@@ -89,6 +89,18 @@ export default function BorrowFormPage() {
         </div>
         {pickLab && <LabCatalog lab={{ id: pickLab.id, name: pickLab.name }} />}
       </div>
+      {c.items.length > 0 && (
+        <a
+          href="#keranjang"
+          className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+        >
+          <ShoppingBasket className="size-5" />
+          <span>
+            {c.items.length} jenis di keranjang
+          </span>
+          <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs">Lihat keranjang</span>
+        </a>
+      )}
       {c.items.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-card p-6 text-center text-sm text-muted-foreground">
           Keranjang masih kosong. Tambahkan alat atau bahan dari daftar di atas.
