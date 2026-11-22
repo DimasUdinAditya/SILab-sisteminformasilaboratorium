@@ -17,7 +17,7 @@ export function itemSummary(b: Pick<BorrowingRow, "borrowing_items">) {
 }
 
 /** manage = KaLab view of their labs; mine = active borrowings; history = finished ones. */
-export function BorrowingList({ mode }: { mode: "manage" | "mine" | "history" }) {
+export function BorrowingList({ mode }: { mode: "manage" | "mine" | "history" | "all" }) {
   const { data, isLoading } = useQuery(borrowingsQuery);
   const [status, setStatus] = useState("active");
   const rows = (data ?? []).filter((b) => {
@@ -30,7 +30,7 @@ export function BorrowingList({ mode }: { mode: "manage" | "mine" | "history" })
 
   return (
     <div className="rounded-xl border bg-card shadow-card">
-      {mode === "manage" && (
+      {(mode === "manage" || mode === "all") && (
         <div className="flex flex-wrap items-center gap-3 border-b p-4">
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-52" aria-label="Filter status">

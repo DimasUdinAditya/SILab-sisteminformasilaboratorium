@@ -26,30 +26,23 @@ export default function BorrowingsPage() {
     <div className="space-y-8">
       <PageHeader
         title="Peminjaman Alat & Bahan"
-        description="Pilih alat dan bahan dari halaman laboratorium, lalu pantau status peminjaman Anda di sini."
+        description="Pilih alat dan bahan, lalu pantau status peminjaman Anda di sini."
         actions={
           <>
             <Button asChild variant="outline">
-              <Link to="/laboratorium">
+              <Link to="/peminjaman/ajukan">
                 <FlaskConical /> Pilih Alat & Bahan
               </Link>
             </Button>
             <Button asChild>
-              <Link to="/peminjaman/ajukan">
+              <Link to="/peminjaman/ajukan#keranjang">
                 <ShoppingBasket /> Keranjang{c.items.length ? ` (${c.items.length})` : ""}
               </Link>
             </Button>
           </>
         }
       />
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Sedang berjalan</h2>
-        <BorrowingList mode="mine" />
-      </section>
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Riwayat</h2>
-        <BorrowingList mode="history" />
-      </section>
+      <BorrowingList mode="all" />
     </div>
   );
 }

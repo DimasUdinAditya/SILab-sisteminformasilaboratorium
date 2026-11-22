@@ -94,7 +94,7 @@ export default function BorrowFormPage() {
           Keranjang masih kosong. Tambahkan alat atau bahan dari daftar di atas.
         </div>
       ) : (
-        <form onSubmit={submit} className="space-y-6 rounded-xl border bg-card p-6 shadow-card">
+        <form id="keranjang" onSubmit={submit} className="scroll-mt-24 space-y-6 rounded-xl border bg-card p-6 shadow-card">
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <Label>Keranjang</Label>
