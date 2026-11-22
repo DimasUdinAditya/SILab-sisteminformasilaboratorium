@@ -108,7 +108,7 @@ export default function ProfilePage() {
             </Button>
           </form>
         </section>
-        {me.role === "kalab" && <SignatureSection meId={me.id} />}
+        {(me.role === "kalab" || me.role === "dekan") && <SignatureSection meId={me.id} role={me.role} />}
       </div>
     </div>
   );

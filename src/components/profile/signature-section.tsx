@@ -7,14 +7,24 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { mySignatureQuery } from "@/lib/letters-queries";
 import { uuidv7 } from "@/lib/vlab";
 
 const MAX = 2 * 1024 * 1024;
 
-export function SignatureSection({ meId }: { meId: string }) {
+export function SignatureSection({ meId, role = "kalab" }: { meId: string; role?: "kalab" | "dekan" }) {
   const qc = useQueryClient();
-  const { data: sig } = useQuery(mySignatureQuery(meId));
+  // KaLab and Dekan keep their signatures in different tables; both are used on official letters.
+  const { data: sig } = useQuery({
+    queryKey: ["labman", "signature", role, meId],
+    queryFn: async () => {
+      const q = role === "dekan"
+        ? supabase.from("dean_signatures").select("id, signature_file").eq("dean_id", meId)
+        : supabase.from("kalab_signatures").select("id, signature_file").eq("kalab_id", meId);
+      const { data, error } = await q.eq("is_active", true).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
   const { data: url } = useQuery({
     queryKey: ["signature-url", sig?.signature_file],
     enabled: !!sig?.signature_file,
@@ -36,9 +46,9 @@ export function SignatureSection({ meId }: { meId: string }) {
       const path = `${meId}/${uuidv7()}.${ext}`;
       const { error } = await supabase.storage.from("signatures").upload(path, file, { contentType: file.type });
       if (error) throw error;
-      const { error: e2 } = await supabase.rpc("set_kalab_signature", { _path: path });
+      const { error: e2 } = await supabase.rpc(role === "dekan" ? "set_dean_signature" : "set_kalab_signature", { _path: path });
       if (e2) throw e2;
-      await qc.invalidateQueries({ queryKey: ["labman", "signature", meId] });
+      await qc.invalidateQueries({ queryKey: ["labman", "signature", role, meId] });
       toast.success("Tanda tangan tersimpan.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Gagal mengunggah tanda tangan.");

@@ -12,7 +12,7 @@ type Block =
   | TextBlock
   | { kind: "row"; cells: Run[][]; header: boolean; equal: boolean }
   | { kind: "hr" }
-  | { kind: "signature"; align: Align };
+  | { kind: "signature"; align: Align; who: "kalab" | "dean" };
 
 const BLOCK_STYLE: Record<string, { size: number; bold: boolean; space: number }> = {
   h1: { size: 17, bold: true, space: 10 },
@@ -119,7 +119,7 @@ export function parseHtml(input: string): Block[] {
         cell = [];
       } else if (tag === "img" && /data-signature/.test(attrs)) {
         flush();
-        blocks.push({ kind: "signature", align: align() });
+        blocks.push({ kind: "signature", align: align(), who: /data-signature="dean"/.test(attrs) ? "dean" : "kalab" });
       }
     } else {
       if (tag in BLOCK_STYLE) flush();
@@ -157,7 +157,10 @@ function words(runs: Run[]): Word[] {
 }
 
 export type RenderOptions = {
+  /** KaLab signature (data-signature="1"). */
   signature?: { bytes: Uint8Array; mime: string } | null;
+  /** Dekan signature (data-signature="dean"), added when the request is endorsed. */
+  deanSignature?: { bytes: Uint8Array; mime: string } | null;
   /** Small grey text at the bottom of every page. */
   footer?: string;
 };
@@ -170,10 +173,9 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
   // Official letters use Times New Roman (PDF standard font Times-Roman).
   const regular = await doc.embedFont(StandardFonts.TimesRoman);
   const boldFont = await doc.embedFont(StandardFonts.TimesRomanBold);
-  let sig: PDFImage | null = null;
-  if (opts.signature) {
-    sig = opts.signature.mime.includes("png") ? await doc.embedPng(opts.signature.bytes) : await doc.embedJpg(opts.signature.bytes);
-  }
+  const embed = async (s: { bytes: Uint8Array; mime: string }) => (s.mime.includes("png") ? doc.embedPng(s.bytes) : doc.embedJpg(s.bytes));
+  const sig: PDFImage | null = opts.signature ? await embed(opts.signature) : null;
+  const deanSig: PDFImage | null = opts.deanSignature ? await embed(opts.deanSignature) : null;
   const ink = rgb(0.12, 0.14, 0.18);
   const muted = rgb(0.45, 0.48, 0.52);
   const width = A4[0] - MARGIN * 2;
@@ -240,14 +242,20 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
       page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + width, y }, thickness: 1.2, color: ink });
       y -= 14;
     } else if (b.kind === "signature") {
+      // Consecutive signature blocks (Dekan and KaLab) are drawn side by side on the same line.
+      const next = blocks[bi + 1];
+      const group = next && next.kind === "signature" ? [b, next] : [b];
+      if (group.length === 2) bi++;
       const h = 58;
       ensure(h + 6);
-      if (sig) {
-        const scale = Math.min(h / sig.height, 170 / sig.width);
-        const w = sig.width * scale;
-        const sh = sig.height * scale;
-        const x = b.align === "right" ? MARGIN + width - w : b.align === "center" ? MARGIN + (width - w) / 2 : MARGIN;
-        page.drawImage(sig, { x, y: y - sh, width: w, height: sh });
+      for (const g of group) {
+        const img = g.who === "dean" ? deanSig : sig;
+        if (!img) continue;
+        const scale = Math.min(h / img.height, 170 / img.width);
+        const w = img.width * scale;
+        const sh = img.height * scale;
+        const x = g.align === "right" ? MARGIN + width - w : g.align === "center" ? MARGIN + (width - w) / 2 : MARGIN;
+        page.drawImage(img, { x, y: y - sh, width: w, height: sh });
       }
       y -= h + 6;
     } else if (b.kind === "row") {

@@ -2,7 +2,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/integrations/supabase/admin";
 import { htmlToPdf } from "@/lib/html-pdf";
-import { fillTemplate, letterNumber, SIGNATURE_MARKER, toLetterData, type LetterItem, type LetterKind, type LetterSource } from "@/lib/letter-template";
+import { DEAN_SIGNATURE_MARKER, fillTemplate, letterNumber, SIGNATURE_MARKER, toLetterData, type LetterItem, type LetterKind, type LetterSource } from "@/lib/letter-template";
 
 const supabaseAdmin = createSupabaseAdminClient();
 
@@ -175,4 +175,59 @@ export async function issueLetter(kind: LetterKind, id: string) {
     link_url: kind === "lab" ? `/laboratorium/pengajuan/${id}` : `/peminjaman/${id}`,
   });
   return doc;
+}
+
+/**
+ * Places the Dekan signature on the official letter of an endorsed request.
+ * The letter keeps its number and file path; only the signature and the stored file change.
+ * Returns null when no letter has been issued for the request yet.
+ */
+export async function attachDeanSignature(kind: LetterKind, id: string, deanId: string) {
+  const { data: doc, error: docErr } = await supabaseAdmin
+    .from("request_documents")
+    .select("id, file_url, letter_number, template_id, signature_id")
+    .eq(kind === "lab" ? "lab_usage_request_id" : "borrowing_id", id)
+    .maybeSingle();
+  if (docErr) throw new Error(docErr.message);
+  if (!doc) return null;
+
+  const { data: dean } = await supabaseAdmin
+    .from("dean_signatures")
+    .select("id, signature_file")
+    .eq("dean_id", deanId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (!dean) throw new Error("Tanda tangan Dekan belum diunggah.");
+  const { data: deanBlob, error: deanErr } = await supabaseAdmin.storage.from("signatures").download(dean.signature_file);
+  if (deanErr || !deanBlob) throw new Error("Tanda tangan Dekan tidak dapat dibaca.");
+  const deanBytes = new Uint8Array(await deanBlob.arrayBuffer());
+  const deanMime = dean.signature_file.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+
+  const { data: kalabSig } = await supabaseAdmin.from("kalab_signatures").select("signature_file").eq("id", doc.signature_id).maybeSingle();
+  if (!kalabSig) throw new Error("Tanda tangan KaLab pada surat tidak ditemukan.");
+  const { data: kalabBlob, error: kalabErr } = await supabaseAdmin.storage.from("signatures").download(kalabSig.signature_file);
+  if (kalabErr || !kalabBlob) throw new Error("Tanda tangan KaLab tidak dapat dibaca.");
+  const kalabBytes = new Uint8Array(await kalabBlob.arrayBuffer());
+  const kalabMime = kalabSig.signature_file.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+
+  const { data: template } = await supabaseAdmin.from("document_templates").select("template_html").eq("id", doc.template_id).maybeSingle();
+  if (!template) throw new Error("Template surat tidak ditemukan.");
+  const req = await loadRequest(kind, id);
+  if (!req) throw new Error("Pengajuan tidak ditemukan");
+
+  const html = fillTemplate(
+    template.template_html,
+    toLetterData({ ...req.source, number: doc.letter_number }),
+    SIGNATURE_MARKER,
+    DEAN_SIGNATURE_MARKER,
+  );
+  const pdf = await htmlToPdf(html, {
+    signature: { bytes: kalabBytes, mime: kalabMime },
+    deanSignature: { bytes: deanBytes, mime: deanMime },
+    footer: `Surat resmi SiLab · ${doc.letter_number} · ditandatangani secara elektronik oleh Kepala Laboratorium dan Dekan`,
+  });
+  const { error: upErr } = await supabaseAdmin.storage.from(LETTER_BUCKET).upload(doc.file_url, pdf, { contentType: "application/pdf", upsert: true });
+  if (upErr) throw new Error(`Gagal menyimpan surat: ${upErr.message}`);
+  await supabaseAdmin.from("request_documents").update({ dean_signature_id: dean.id }).eq("id", doc.id);
+  return { letterNumber: doc.letter_number };
 }

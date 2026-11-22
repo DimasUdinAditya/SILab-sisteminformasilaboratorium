@@ -25,7 +25,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatDateTime, labError } from "@/lib/labman";
-import { getLetterLink } from "@/lib/letters.actions";
+import { endorseLetter, getLetterLink } from "@/lib/letters.actions";
 
 
 type Status = "Menunggu_Pengesahan" | "Disahkan";
@@ -50,7 +50,7 @@ const queueQuery = (status: Status) => ({
 export default function EndorsementPage() {
   const [tab, setTab] = useState<Status>("Menunggu_Pengesahan");
   const { data, isLoading } = useQuery(queueQuery(tab));
-  const [target, setTarget] = useState<{ id: string; label: string } | null>(null);
+  const [target, setTarget] = useState<{ id: string; label: string; kind: "lab" | "borrowing"; reqId: string } | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [opening, setOpening] = useState<string | null>(null);
@@ -73,10 +73,11 @@ export default function EndorsementPage() {
   async function endorse() {
     if (!target) return;
     setBusy(true);
-    const { error } = await supabase.rpc("endorse_request", note.trim() ? { p_endorsement_id: target.id, p_note: note.trim() } : { p_endorsement_id: target.id });
+    // The server action records the endorsement and places the Dekan signature on the official letter.
+    const res = await endorseLetter({ kind: target.kind, id: target.reqId, note: note.trim() || undefined });
     setBusy(false);
-    if (error) return void toast.error(labError(error));
-    toast.success("Pengajuan telah disahkan.");
+    if (!res.ok) return void toast.error(res.error);
+    toast.success(res.letter ? "Pengajuan telah disahkan. Surat resmi sudah memuat tanda tangan Dekan." : `Pengajuan telah disahkan. ${res.letterError ?? ""}`.trim());
     setTarget(null);
     setNote("");
     await qc.invalidateQueries({ queryKey: ["labman"] });
@@ -142,7 +143,7 @@ export default function EndorsementPage() {
                   {opening === reqId ? <Loader2 className="animate-spin" /> : <FileText />} Lihat Surat
                 </Button>
                 {e.status === "Menunggu_Pengesahan" ? (
-                  <Button onClick={() => setTarget({ id: e.id, label: `${lab} — ${person?.name ?? ""}` })}>
+                  <Button onClick={() => setTarget({ id: e.id, label: `${lab} — ${person?.name ?? ""}`, kind: e.request_type === "lab_usage" ? "lab" : "borrowing", reqId: reqId })}>
                     <Stamp /> Sahkan
                   </Button>
                 ) : (

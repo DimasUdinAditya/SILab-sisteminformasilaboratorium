@@ -33,6 +33,7 @@ export const PLACEHOLDERS = [
   "tanggal_persetujuan",
   "nama_kalab",
   "tanda_tangan",
+  "tanda_tangan_dekan",
 ] as const;
 
 export const JENIS_LABEL: Record<LetterKind, string> = {
@@ -63,7 +64,7 @@ export function itemsHtml(items: LetterItem[]): string {
  * Fills the template. `signatureHtml` replaces {{tanda_tangan}}: an `<img data-signature>`
  * marker for the PDF, or a blank space for the unsigned preview.
  */
-export function fillTemplate(template: string, data: LetterData, signatureHtml: string): string {
+export function fillTemplate(template: string, data: LetterData, signatureHtml: string, deanSignatureHtml = ""): string {
   const values: Record<string, string> = {
     nomor_surat: escapeHtml(data.nomor_surat),
     nama_pemohon: escapeHtml(data.nama_pemohon),
@@ -77,6 +78,7 @@ export function fillTemplate(template: string, data: LetterData, signatureHtml: 
     tanggal_persetujuan: escapeHtml(data.tanggal_persetujuan),
     nama_kalab: escapeHtml(data.nama_kalab),
     tanda_tangan: signatureHtml,
+    tanda_tangan_dekan: deanSignatureHtml,
   };
   return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, key: string) => values[key] ?? m);
 }
@@ -103,6 +105,7 @@ export function letterNumber(seq: number, kind: LetterKind, issuedAt: Date): str
 }
 
 export const SIGNATURE_MARKER = '<img data-signature="1" />';
+export const DEAN_SIGNATURE_MARKER = '<img data-signature="dean" />';
 
 /** Normalized request data shared by the browser preview and the server PDF. */
 export type LetterSource = {

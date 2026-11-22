@@ -556,6 +556,38 @@ export type Database = {
           },
         ]
       }
+      dean_signatures: {
+        Row: {
+          created_at: string
+          dean_id: string
+          id: string
+          is_active: boolean
+          signature_file: string
+        }
+        Insert: {
+          created_at?: string
+          dean_id: string
+          id?: string
+          is_active?: boolean
+          signature_file: string
+        }
+        Update: {
+          created_at?: string
+          dean_id?: string
+          id?: string
+          is_active?: boolean
+          signature_file?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dean_signatures_dean_id_fkey"
+            columns: ["dean_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_templates: {
         Row: {
           id: string
@@ -1654,6 +1686,7 @@ export type Database = {
           letter_number: string | null
           signature_id: string
           template_id: string
+          dean_signature_id: string | null
         }
         Insert: {
           borrowing_id?: string | null
@@ -1666,6 +1699,7 @@ export type Database = {
           letter_number?: string | null
           signature_id: string
           template_id: string
+          dean_signature_id?: string | null
         }
         Update: {
           borrowing_id?: string | null
@@ -1678,6 +1712,7 @@ export type Database = {
           letter_number?: string | null
           signature_id?: string
           template_id?: string
+          dean_signature_id?: string | null
         }
         Relationships: [
           {
@@ -2337,6 +2372,10 @@ export type Database = {
         Returns: string
       }
       self_evaluation_module_id: { Args: { _id: string }; Returns: string }
+      set_dean_signature: {
+        Args: { _path: string }
+        Returns: string
+      }
       set_kalab_signature: { Args: { _path: string }; Returns: string }
       set_profile_active: {
         Args: { _active: boolean; _id: string }

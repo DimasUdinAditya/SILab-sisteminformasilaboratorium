@@ -103,3 +103,44 @@ export async function getLetterLink(raw: unknown): Promise<LetterLinkResult> {
     return { ok: false, error: message(e) };
   }
 }
+
+export type EndorseResult = { ok: true; letter: boolean; letterError?: string } | { ok: false; error: string };
+
+/**
+ * Dekan endorses an approved request. The Dekan signature must already be uploaded; it is then placed
+ * on the official letter. Expected failures are returned as messages (see getLetterLink).
+ */
+export async function endorseLetter(raw: unknown): Promise<EndorseResult> {
+  try {
+    const data = z.object({ kind: z.enum(["lab", "borrowing"]), id: z.string().uuid(), note: z.string().max(500).optional() }).parse(raw);
+    const { supabase, userId } = await requireUser();
+    const { data: role } = await supabase.rpc("current_app_role");
+    if (role !== "dekan") throw new Error("Akses ditolak: khusus Dekan.");
+
+    const { data: endorsement, error: endErr } = await supabase
+      .from("borrowing_endorsements")
+      .select("id, status")
+      .eq(data.kind === "lab" ? "lab_usage_request_id" : "borrowing_id", data.id)
+      .maybeSingle();
+    if (endErr) throw new Error(endErr.message);
+    if (!endorsement) throw new Error("Pengajuan belum masuk antrean pengesahan.");
+    if (endorsement.status !== "Menunggu_Pengesahan") throw new Error("Pengajuan sudah disahkan.");
+
+    const { data: sig } = await supabase.from("dean_signatures").select("id").eq("dean_id", userId).eq("is_active", true).maybeSingle();
+    if (!sig) throw new Error("Unggah tanda tangan Anda di halaman Profil sebelum mengesahkan.");
+
+    const { error } = await supabase.rpc("endorse_request", { p_endorsement_id: endorsement.id, ...(data.note ? { p_note: data.note } : {}) });
+    if (error) throw new Error(error.message);
+
+    try {
+      const { attachDeanSignature } = await import("@/lib/letters.server");
+      const doc = await attachDeanSignature(data.kind, data.id, userId);
+      return { ok: true, letter: !!doc, ...(doc ? {} : { letterError: "Surat resmi belum terbit." }) };
+    } catch (e) {
+      console.error("attachDeanSignature failed", e);
+      return { ok: true, letter: false, letterError: message(e) };
+    }
+  } catch (e) {
+    return { ok: false, error: message(e) };
+  }
+}
