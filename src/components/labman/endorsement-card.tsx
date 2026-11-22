@@ -6,6 +6,7 @@ import { FileSignature } from "lucide-react";
 import { StatusBadge } from "@/components/app/status-badge";
 import { formatDateTime } from "@/lib/labman";
 import type { LetterKind } from "@/lib/letter-template";
+import { meQueryOptions } from "@/lib/profile";
 import { endorsementStatusQuery } from "@/lib/letters-queries";
 
 export function EndorsementBadge({ status }: { status: "Menunggu_Pengesahan" | "Disahkan" }) {
@@ -14,7 +15,10 @@ export function EndorsementBadge({ status }: { status: "Menunggu_Pengesahan" | "
 
 /** Read-only Dekan endorsement status shown to the requester and KaLab. */
 export function EndorsementCard({ kind, id }: { kind: LetterKind; id: string }) {
+  const { data: me } = useQuery(meQueryOptions);
   const { data, isLoading } = useQuery(endorsementStatusQuery(kind, id));
+  // Mahasiswa and dosen do not see the Dekan endorsement status.
+  if (me?.role === "mahasiswa" || me?.role === "dosen") return null;
   if (isLoading || !data) return null;
   return (
     <div className="rounded-xl border bg-card p-6 shadow-card">

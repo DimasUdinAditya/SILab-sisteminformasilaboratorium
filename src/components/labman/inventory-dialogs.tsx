@@ -198,13 +198,14 @@ export function ConsumableDialog({
   labs: LabOpt[];
 }) {
   const qc = useQueryClient();
-  const [f, setF] = useState({ lab: "", name: "", unit: "", stock: "0", min: "0", description: "" });
+  const [f, setF] = useState({ lab: "", code: "", name: "", unit: "", stock: "0", min: "0", description: "" });
   const [photo, setPhoto] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (open)
       setF({
         lab: item?.laboratory_id ?? labs[0]?.id ?? "",
+        code: item?.code ?? "",
         name: item?.name ?? "",
         unit: item?.unit ?? "",
         stock: String(item?.stock ?? 0),
@@ -219,6 +220,7 @@ export function ConsumableDialog({
     const stock = Number(f.stock);
     const min = Number(f.min);
     if (!f.lab) return void toast.error("Pilih laboratorium.");
+    if (!f.code.trim()) return void toast.error("ID/Kode bahan wajib diisi.");
     if (!f.name.trim() || !f.unit.trim()) return void toast.error("Nama dan satuan wajib diisi.");
     if (![stock, min].every((n) => Number.isInteger(n) && n >= 0)) return void toast.error("Stok harus bilangan bulat ≥ 0.");
     if (!f.description.trim()) return void toast.error("Deskripsi bahan wajib diisi.");
@@ -231,7 +233,7 @@ export function ConsumableDialog({
       setBusy(false);
       return void toast.error(labError(err));
     }
-    const extra = { description: f.description.trim(), ...(photoPath ? { photo_url: photoPath } : {}) };
+    const extra = { code: f.code.trim(), description: f.description.trim(), ...(photoPath ? { photo_url: photoPath } : {}) };
     const { error } = item
       ? await supabase.from("consumables").update({ name: f.name.trim(), unit: f.unit.trim(), min_stock: min, ...extra }).eq("id", item.id)
       : await supabase.from("consumables").insert({ laboratory_id: f.lab, name: f.name.trim(), unit: f.unit.trim(), stock, min_stock: min, ...extra });
@@ -250,6 +252,10 @@ export function ConsumableDialog({
             <DialogTitle>{item ? "Ubah bahan habis pakai" : "Tambah bahan habis pakai"}</DialogTitle>
           </DialogHeader>
           {!item && labs.length > 1 && <LabSelect labs={labs} value={f.lab} onChange={(lab) => setF({ ...f, lab })} />}
+          <div className="space-y-2">
+            <Label htmlFor="co-code">ID/Kode *</Label>
+            <Input id="co-code" value={f.code} maxLength={30} placeholder="ALKG-01" onChange={(e) => setF({ ...f, code: e.target.value })} />
+          </div>
           <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
             <div className="space-y-2">
               <Label htmlFor="co-name">Nama bahan</Label>

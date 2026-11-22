@@ -2,11 +2,13 @@
 
 import { Link } from "@/lib/router-compat";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ImageOff, Plus, ShoppingBasket } from "lucide-react";
+import { Check, ImageOff, Info, Plus, ShoppingBasket } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { CalibrationBadge, ItemTypeBadge } from "@/components/labman/badges";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cart, useCart } from "@/lib/cart";
 import { calibrationState, latestNextCalibration } from "@/lib/labman";
 import { catalogQuery } from "@/lib/labman-queries";
@@ -24,6 +26,8 @@ type Row = {
   unit: string;
   badge: React.ReactNode;
   blocked: string | null;
+  info: { label: string; value: string }[];
+  certificate: string | null;
 };
 
 /** Alat & bahan of one laboratory as cards, for the borrowing cart. */
@@ -57,6 +61,15 @@ export function LabCatalog({ lab }: { lab: { id: string; name: string } }) {
         unit: "unit",
         badge: e.requires_calibration ? <CalibrationBadge requires next={next} /> : null,
         blocked: !cal.borrowable ? "Kalibrasi kedaluwarsa" : e.qty_available <= 0 ? "Sedang dipinjam semua" : null,
+        info: [
+          { label: "Kode", value: e.code },
+          { label: "Kategori", value: e.equipment_categories?.name ?? "-" },
+          { label: "Kondisi", value: e.condition ?? "-" },
+          { label: "Stok tersedia", value: `${e.qty_available} dari ${e.qty_total} unit` },
+          { label: "Wajib kalibrasi", value: e.requires_calibration ? "Ya" : "Tidak" },
+          { label: "Kalibrasi berikutnya", value: next ?? "-" },
+        ],
+        certificate: e.calibrations?.[0]?.certificate_url ?? null,
       };
     }),
     ...consumables.map((x) => ({
@@ -71,6 +84,12 @@ export function LabCatalog({ lab }: { lab: { id: string; name: string } }) {
       unit: x.unit,
       badge: null,
       blocked: x.stock <= 0 ? "Stok habis" : null,
+      info: [
+        { label: "Kode", value: x.code ?? "-" },
+        { label: "Stok tersedia", value: `${x.stock} ${x.unit}` },
+        { label: "Stok minimum", value: `${x.min_stock} ${x.unit}` },
+      ],
+      certificate: null,
     })),
   ];
 
@@ -96,7 +115,12 @@ export function LabCatalog({ lab }: { lab: { id: string; name: string } }) {
       )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {rows.map((r) => (
-          <CatalogCard key={r.key} row={r} added={inCart(r.type, r.id)} onAdd={() => add({ type: r.type, id: r.id, name: r.name, unit: r.unit, max: r.available })} />
+          <CatalogCard
+            key={r.key}
+            row={r}
+            added={inCart(r.type, r.id)}
+            onAdd={() => add({ type: r.type, id: r.id, name: r.name, unit: r.unit, max: r.available })}
+          />
         ))}
       </div>
     </div>
@@ -105,6 +129,7 @@ export function LabCatalog({ lab }: { lab: { id: string; name: string } }) {
 
 function CatalogCard({ row: r, added, onAdd }: { row: Row; added: boolean; onAdd: () => void }) {
   const { data: photoUrl } = useLabFileUrl("equipment-photos", r.photo);
+  const [detailOpen, setDetailOpen] = useState(false);
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-card">
       <div className="flex aspect-[4/3] items-center justify-center bg-muted">
@@ -123,23 +148,69 @@ function CatalogCard({ row: r, added, onAdd }: { row: Row; added: boolean; onAdd
           <ItemTypeBadge type={r.type} />
         </div>
         <p className="text-xs text-muted-foreground">{r.sub}</p>
-        {r.description && <p className="line-clamp-2 text-sm text-muted-foreground">{r.description}</p>}
         <div className="mt-auto flex items-center justify-between gap-2 pt-2">
           <span className="text-sm">
             {r.available} {r.unit} tersedia
           </span>
           {r.badge}
         </div>
-        <div className="pt-1">
+        {r.blocked && <p className="text-xs text-muted-foreground">{r.blocked}</p>}
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <Button size="sm" variant="outline" aria-label={`Detail ${r.name}`} onClick={() => setDetailOpen(true)}>
+            <Info /> Detail
+          </Button>
           {r.blocked ? (
-            <span className="text-xs text-muted-foreground">{r.blocked}</span>
+            <Button size="sm" variant="outline" disabled>
+              Tidak tersedia
+            </Button>
           ) : (
-            <Button size="sm" variant="outline" className="w-full" aria-label={`Tambah ${r.name} ke keranjang`} onClick={onAdd}>
+            <Button size="sm" variant="outline" aria-label={`Tambah ${r.name} ke keranjang`} onClick={onAdd}>
               {added ? <Check /> : <Plus />} {added ? "Tambah lagi" : "Keranjang"}
             </Button>
           )}
         </div>
       </div>
+      <CatalogDetail row={r} photoUrl={photoUrl ?? null} open={detailOpen} onOpenChange={setDetailOpen} />
     </article>
+  );
+}
+
+function CatalogDetail({ row: r, photoUrl, open, onOpenChange }: { row: Row; photoUrl: string | null; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { data: certUrl } = useLabFileUrl("calibration-certificates", open ? r.certificate : null);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{r.name}</DialogTitle>
+          <DialogDescription>
+            <ItemTypeBadge type={r.type} />
+          </DialogDescription>
+        </DialogHeader>
+        {photoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photoUrl} alt={r.name} className="max-h-60 w-full rounded-lg bg-muted object-contain" />
+        )}
+        {r.description && <p className="whitespace-pre-line text-sm">{r.description}</p>}
+        <dl className="divide-y rounded-lg border text-sm">
+          {r.info.map((i) => (
+            <div key={i.label} className="grid grid-cols-2 gap-2 p-3">
+              <dt className="text-muted-foreground">{i.label}</dt>
+              <dd className="font-medium">{i.value}</dd>
+            </div>
+          ))}
+        </dl>
+        {r.certificate && (
+          <p className="text-sm">
+            {certUrl ? (
+              <a href={certUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-secondary hover:underline">
+                Lihat sertifikat kalibrasi
+              </a>
+            ) : (
+              <span className="text-muted-foreground">Memuat sertifikat…</span>
+            )}
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

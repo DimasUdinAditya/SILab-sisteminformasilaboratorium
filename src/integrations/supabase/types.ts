@@ -490,6 +490,7 @@ export type Database = {
           unit: string
           description: string | null
           photo_url: string | null
+          code: string | null
         }
         Insert: {
           id?: string
@@ -500,6 +501,7 @@ export type Database = {
           unit: string
           description?: string | null
           photo_url?: string | null
+          code?: string | null
         }
         Update: {
           id?: string
@@ -510,6 +512,7 @@ export type Database = {
           unit?: string
           description?: string | null
           photo_url?: string | null
+          code?: string | null
         }
         Relationships: [
           {

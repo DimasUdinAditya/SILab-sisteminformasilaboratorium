@@ -114,7 +114,11 @@ export default function EndorsementPage() {
             <div key={e.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-5 shadow-card">
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{isLab ? "Penggunaan Lab" : "Peminjaman Alat & Bahan"}</Badge>
+                  {isLab ? (
+                    <Badge variant="outline" className="border-slate-300 bg-slate-100 text-slate-800">Penggunaan Lab</Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-slate-700 bg-slate-700 text-white">Peminjaman Alat & Bahan</Badge>
+                  )}
                   {e.status === "Disahkan" ? (
                     <Badge className="bg-success-soft text-success hover:bg-success-soft">Disahkan</Badge>
                   ) : (

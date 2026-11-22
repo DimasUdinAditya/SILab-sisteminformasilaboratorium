@@ -10,7 +10,7 @@ type Run = { text: string; bold: boolean };
 type TextBlock = { kind: "text"; runs: Run[]; align: Align; size: number; bold: boolean; bullet?: string | undefined; space: number };
 type Block =
   | TextBlock
-  | { kind: "row"; cells: Run[][]; header: boolean }
+  | { kind: "row"; cells: Run[][]; header: boolean; equal: boolean }
   | { kind: "hr" }
   | { kind: "signature"; align: Align };
 
@@ -47,13 +47,15 @@ function alignOf(attrs: string): Align | null {
   return m ? (m[1]!.toLowerCase() as Align) : null;
 }
 
-export function parseHtml(html: string): Block[] {
+export function parseHtml(input: string): Block[] {
+  // The doctype is not content; drop it so it is not printed.
+  const html = input.replace(/<!doctype[^>]*>/gi, "");
   const blocks: Block[] = [];
   const alignStack: Align[] = ["left"];
   const lists: { ordered: boolean; n: number }[] = [];
   let bold = 0;
   let current: TextBlock | null = null;
-  let row: { cells: Run[][]; header: boolean } | null = null;
+  let row: { cells: Run[][]; header: boolean; equal: boolean } | null = null;
   let cell: Run[] | null = null;
 
   const align = () => alignStack[alignStack.length - 1]!;
@@ -111,7 +113,8 @@ export function parseHtml(html: string): Block[] {
         lists.push({ ordered: tag === "ol", n: 0 });
       } else if (tag === "tr") {
         flush();
-        row = { cells: [], header: false };
+        // data-equal: equal-width columns without the label layout (used for the signature block).
+        row = { cells: [], header: false, equal: /data-equal/.test(attrs) };
       } else if (tag === "td") {
         cell = [];
       } else if (tag === "img" && /data-signature/.test(attrs)) {
@@ -164,8 +167,9 @@ const MARGIN = 56;
 
 export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
-  const regular = await doc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+  // Official letters use Times New Roman (PDF standard font Times-Roman).
+  const regular = await doc.embedFont(StandardFonts.TimesRoman);
+  const boldFont = await doc.embedFont(StandardFonts.TimesRomanBold);
   let sig: PDFImage | null = null;
   if (opts.signature) {
     sig = opts.signature.mime.includes("png") ? await doc.embedPng(opts.signature.bytes) : await doc.embedJpg(opts.signature.bytes);
@@ -250,7 +254,8 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
       const size = 11;
       const lh = size * 1.45;
       const n = Math.max(b.cells.length, 1);
-      const colW = n === 2 ? [140, width - 152] : Array.from({ length: n }, () => width / n);
+      const labelLayout = n === 2 && !b.equal;
+      const colW = labelLayout ? [140, width - 152] : Array.from({ length: n }, () => width / n);
       const wrapped = b.cells.map((c, i) => wrap(words(c.map((r) => ({ ...r, bold: r.bold || b.header }))), size, colW[i]! - 8));
       const rows = Math.max(1, ...wrapped.map((l) => l.length));
       ensure(rows * lh);
@@ -262,8 +267,8 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
           drawLine(l.words, x, size);
           y -= lh;
         });
-        if (n === 2 && i === 0) page.drawText(":", { x: MARGIN + colW[0]! - 2, y: top, size, font: regular, color: ink });
-        x += colW[i]! + (n === 2 && i === 0 ? 12 : 0);
+        if (labelLayout && i === 0) page.drawText(":", { x: MARGIN + colW[0]! - 2, y: top, size, font: regular, color: ink });
+        x += colW[i]! + (labelLayout && i === 0 ? 12 : 0);
       });
       y = top - (rows - 1) * lh - (lh - size) - 2;
       if (b.header) {

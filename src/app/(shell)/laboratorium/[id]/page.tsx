@@ -3,10 +3,13 @@
 import { useParams } from "@/lib/router-compat";
 import { Link } from "@/lib/router-compat";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { CalendarPlus, MapPin, Pencil, Plus, UserCircle, Users } from "lucide-react";
+import { CalendarPlus, MapPin, Pencil, Plus, Trash2, UserCircle, Users } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/app/page-header";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 import { LabFormDialog } from "@/components/labman/lab-form-dialog";
 import { ScheduleEntryDialog, type EntryDraft } from "@/components/labman/schedule-entry-dialog";
 import { WeekCalendar, WeekNav } from "@/components/labman/week-calendar";
@@ -42,6 +45,34 @@ export default function LabDetailPage() {
                 <Button variant="outline" onClick={() => setEditLab(true)}>
                   <Pencil /> Ubah data
                 </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                      <Trash2 /> Hapus laboratorium
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Hapus laboratorium?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Laboratorium hanya bisa dihapus jika jadwalnya kosong dan tidak ada peminjaman alat dan bahan. Inventaris (alat dan bahan) juga harus dikosongkan dahulu.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          const { error } = await supabase.rpc("delete_laboratory", { _id: lab.id });
+                          if (error) return void toast.error(error.message);
+                          toast.success("Laboratorium dihapus.");
+                          window.location.assign("/laboratorium");
+                        }}
+                      >
+                        Ya, hapus
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <Button onClick={() => setDraft({ date: addDays(jakartaToday(), 1), start_time: "08:00", end_time: "10:00", activity: "" })}>
                   <Plus /> Tambah jadwal
                 </Button>
