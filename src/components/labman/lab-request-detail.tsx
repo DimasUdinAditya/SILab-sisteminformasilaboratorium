@@ -157,7 +157,7 @@ export function LabRequestDetail({ id, manage }: { id: string; manage?: boolean 
             startTime: r.start_time,
             endTime: r.end_time,
             approvedAt: r.approved_at,
-            kalabName: r.approver?.name ?? null,
+            kalabName: r.approver?.name ?? r.labKalab?.kalab?.name ?? null,
           }}
         />
         {r.status === "Disetujui" && <EndorsementCard kind="lab" id={r.id} />}

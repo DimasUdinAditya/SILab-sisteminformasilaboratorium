@@ -303,7 +303,7 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
         y -= 2;
       }
       const next = blocks[bi + 1];
-      if (!next || next.kind !== "row") y -= 8;
+      if (!next || next.kind !== "row") y -= 18;
     } else {
       const size = b.size;
       const lh = size * 1.45;

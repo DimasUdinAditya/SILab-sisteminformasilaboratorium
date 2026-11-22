@@ -67,7 +67,7 @@ export const labRequestQuery = (id: string) =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lab_usage_requests")
-        .select(`${REQUEST_LIST}, approver:profiles!lab_usage_requests_approved_by_fkey(name), status_history(${HISTORY})`)
+        .select(`${REQUEST_LIST}, approver:profiles!lab_usage_requests_approved_by_fkey(name), labKalab:laboratories(kalab:profiles!laboratories_kalab_id_fkey(name)), status_history(${HISTORY})`)
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { htmlToPdf } from "@/lib/html-pdf";
+import { supabase } from "@/integrations/supabase/client";
 import { formatDateTime } from "@/lib/labman";
 import { DEAN_SIGNATURE_MARKER, fillTemplate, SIGNATURE_MARKER, toLetterData, type LetterKind, type LetterSource } from "@/lib/letter-template";
 import { getLetterLink, issueOfficialLetter } from "@/lib/letters.actions";
@@ -131,13 +132,22 @@ export function LetterCard({ kind, id, status, source, canIssue }: Props) {
 function DraftPreviewDialog({ open, onOpenChange, kind, source }: { open: boolean; onOpenChange: (o: boolean) => void; kind: LetterKind; source: LetterSource }) {
   const { data: template, isLoading } = useQuery({ ...templateQuery(kind), enabled: open });
   const [url, setUrl] = useState<string | null>(null);
+  const { data: dekanName = "" } = useQuery({
+    queryKey: ["letters", "dekan-name"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("name, roles!inner(code)").eq("roles.code", "dekan").eq("is_active", true).limit(1).maybeSingle();
+      if (error) throw error;
+      return data?.name ?? "";
+    },
+  });
   // The draft is the same PDF layout as the official letter, without signatures and with a watermark.
   useEffect(() => {
     if (!open || !template) return;
     let objectUrl: string | null = null;
     let cancelled = false;
     // Signature markers keep the same vertical space as the official letter; nothing is drawn for a draft.
-    const html = fillTemplate(template.template_html, toLetterData(source), SIGNATURE_MARKER, DEAN_SIGNATURE_MARKER);
+    const html = fillTemplate(template.template_html, toLetterData(source), SIGNATURE_MARKER, DEAN_SIGNATURE_MARKER, dekanName);
     htmlToPdf(html, { watermark: "BELUM DISETUJUI", footer: "Pratinjau surat" }).then((bytes) => {
       if (cancelled) return;
       objectUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "application/pdf" }));
@@ -148,7 +158,7 @@ function DraftPreviewDialog({ open, onOpenChange, kind, source }: { open: boolea
       if (objectUrl) URL.revokeObjectURL(objectUrl);
       setUrl(null);
     };
-  }, [open, template, source]);
+  }, [open, template, source, dekanName]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
