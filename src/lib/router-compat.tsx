@@ -38,8 +38,10 @@ type NavigateOptions = { to?: string; href?: string; params?: Record<string, str
 
 export function useNavigate() {
   const router = useRouter();
+  const pathname = usePathname();
   return (opts: NavigateOptions) => {
-    const url = opts.href ?? buildHref(opts.to ?? "/", opts.params, opts.search);
+    // Without `to`, stay on the current page and only change the search params (as TanStack did).
+    const url = opts.href ?? buildHref(opts.to ?? pathname, opts.params, opts.search);
     if (opts.replace) router.replace(url);
     else router.push(url);
   };
