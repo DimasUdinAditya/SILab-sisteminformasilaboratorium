@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
+import { Landing } from "@/components/app/landing";
 
-// Middleware sends logged-out visitors to /auth. Logged-in users land on the dashboard.
-export default function Home() {
-  redirect("/dashboard");
+// Public landing page. Signed-in users reach their dashboard through the Masuk button.
+export default function HomePage() {
+  return <Landing />;
 }
