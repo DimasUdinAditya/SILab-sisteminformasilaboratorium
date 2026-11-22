@@ -308,7 +308,9 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
         y -= 2;
       }
       const next = blocks[bi + 1];
-      if (!next || next.kind !== "row") y -= 8 + (b.gap ?? 0);
+      if (!next || next.kind !== "row") y -= 8;
+      // Gap after a table applies even when the next block is another table (the signature area).
+      y -= b.gap ?? 0;
     } else {
       const size = b.size;
       const lh = size * 1.45;
