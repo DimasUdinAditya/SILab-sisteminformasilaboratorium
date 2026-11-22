@@ -98,11 +98,6 @@ export default function BorrowFormPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <Label>Keranjang</Label>
-              {c.labId && (
-                <Link to="/laboratorium/$id" params={{ id: c.labId }} className="text-sm font-medium text-secondary hover:underline">
-                  Tambah item
-                </Link>
-              )}
             </div>
             <ul className="divide-y rounded-lg border">
               {c.items.map((i) => (

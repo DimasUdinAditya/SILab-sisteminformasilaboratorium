@@ -7,7 +7,6 @@ import { CalendarPlus, MapPin, Pencil, Plus, UserCircle, Users } from "lucide-re
 import { useState } from "react";
 
 import { PageHeader } from "@/components/app/page-header";
-import { LabCatalog } from "@/components/labman/lab-catalog";
 import { LabFormDialog } from "@/components/labman/lab-form-dialog";
 import { ScheduleEntryDialog, type EntryDraft } from "@/components/labman/schedule-entry-dialog";
 import { WeekCalendar, WeekNav } from "@/components/labman/week-calendar";
@@ -90,7 +89,6 @@ export default function LabDetailPage() {
           }
         />
       </div>
-      {canRequest && <LabCatalog lab={{ id: lab.id, name: lab.name }} />}
       {isOwner && (
         <>
           <LabFormDialog open={editLab} onOpenChange={setEditLab} lab={lab} />
