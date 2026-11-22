@@ -1,6 +1,10 @@
 "use client";
 
 import { Link, useNavigate } from "@/lib/router-compat";
+import { useQuery } from "@tanstack/react-query";
+import { LabCatalog } from "@/components/labman/lab-catalog";
+import { labsQuery } from "@/lib/labman-queries";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { FlaskConical, Loader2, Minus, Plus, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -21,6 +25,10 @@ import { meQueryOptions } from "@/lib/profile";
 export default function BorrowFormPage() {
   const { data: me } = useSuspenseQuery(meQueryOptions);
   const c = useCart();
+  const { data: labs } = useQuery(labsQuery);
+  const [pickLabId, setPickLabId] = useState<string>("");
+  // Default to the lab already in the cart, otherwise the first lab.
+  const pickLab = (labs ?? []).find((l) => l.id === (pickLabId || c.labId || labs?.[0]?.id));
   const [borrowDate, setBorrowDate] = useState(minRequestDate());
   const [dueDate, setDueDate] = useState(addDays(minRequestDate(), 2));
   const [purpose, setPurpose] = useState("");
@@ -63,14 +71,27 @@ export default function BorrowFormPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title="Ajukan Peminjaman Alat & Bahan" description={c.labName ?? undefined} />
+      <div className="mb-8 space-y-4">
+        <div className="space-y-2">
+          <Label>Laboratorium</Label>
+          <Select value={pickLabId} onValueChange={setPickLabId}>
+            <SelectTrigger aria-label="Pilih laboratorium" className="max-w-sm">
+              <SelectValue placeholder="Pilih laboratorium" />
+            </SelectTrigger>
+            <SelectContent>
+              {labs?.map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  {l.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {pickLab && <LabCatalog lab={{ id: pickLab.id, name: pickLab.name }} />}
+      </div>
       {c.items.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-card p-10 text-center">
-          <p className="text-sm text-muted-foreground">Keranjang masih kosong. Pilih alat atau bahan dari halaman laboratorium.</p>
-          <Button asChild className="mt-4">
-            <Link to="/laboratorium">
-              <FlaskConical /> Pilih Laboratorium
-            </Link>
-          </Button>
+        <div className="rounded-xl border border-dashed bg-card p-6 text-center text-sm text-muted-foreground">
+          Keranjang masih kosong. Tambahkan alat atau bahan dari daftar di atas.
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-6 rounded-xl border bg-card p-6 shadow-card">
