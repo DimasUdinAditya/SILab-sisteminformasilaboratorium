@@ -210,8 +210,14 @@ export async function attachDeanSignature(kind: LetterKind, id: string, deanId: 
   const deanBytes = new Uint8Array(await deanBlob.arrayBuffer());
   const deanMime = dean.signature_file.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
 
-  const { data: kalabSig } = await supabaseAdmin.from("kalab_signatures").select("signature_file").eq("id", doc.signature_id).maybeSingle();
-  if (!kalabSig) throw new Error("Tanda tangan KaLab pada surat tidak ditemukan.");
+  // Use the approver's active KaLab signature; the one stored on the letter may be an older placeholder.
+  const req0 = await loadRequest(kind, id);
+  const { data: activeKalab } = req0?.approvedBy
+    ? await supabaseAdmin.from("kalab_signatures").select("id, signature_file").eq("kalab_id", req0.approvedBy).eq("is_active", true).maybeSingle()
+    : { data: null };
+  const kalabSigRow = activeKalab ?? (await supabaseAdmin.from("kalab_signatures").select("id, signature_file").eq("id", doc.signature_id).maybeSingle()).data;
+  if (!kalabSigRow) throw new Error("Tanda tangan KaLab pada surat tidak ditemukan.");
+  const kalabSig = kalabSigRow;
   const { data: kalabBlob, error: kalabErr } = await supabaseAdmin.storage.from("signatures").download(kalabSig.signature_file);
   if (kalabErr || !kalabBlob) throw new Error("Tanda tangan KaLab tidak dapat dibaca.");
   const kalabBytes = new Uint8Array(await kalabBlob.arrayBuffer());
@@ -237,6 +243,6 @@ export async function attachDeanSignature(kind: LetterKind, id: string, deanId: 
   });
   const { error: upErr } = await supabaseAdmin.storage.from(LETTER_BUCKET).upload(doc.file_url, pdf, { contentType: "application/pdf", upsert: true });
   if (upErr) throw new Error(`Gagal menyimpan surat: ${upErr.message}`);
-  await supabaseAdmin.from("request_documents").update({ dean_signature_id: dean.id }).eq("id", doc.id);
+  await supabaseAdmin.from("request_documents").update({ dean_signature_id: dean.id, signature_id: kalabSigRow.id }).eq("id", doc.id);
   return { letterNumber: doc.letter_number };
 }
