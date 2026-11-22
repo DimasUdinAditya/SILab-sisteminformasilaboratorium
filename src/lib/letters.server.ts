@@ -215,11 +215,13 @@ export async function attachDeanSignature(kind: LetterKind, id: string, deanId: 
   const req = await loadRequest(kind, id);
   if (!req) throw new Error("Pengajuan tidak ditemukan");
 
+  const { data: deanProfile } = await supabaseAdmin.from("profiles").select("name").eq("id", deanId).maybeSingle();
   const html = fillTemplate(
     template.template_html,
     toLetterData({ ...req.source, number: doc.letter_number }),
     SIGNATURE_MARKER,
     DEAN_SIGNATURE_MARKER,
+    deanProfile?.name ?? "",
   );
   const pdf = await htmlToPdf(html, {
     signature: { bytes: kalabBytes, mime: kalabMime },

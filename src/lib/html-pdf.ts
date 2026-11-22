@@ -10,9 +10,9 @@ type Run = { text: string; bold: boolean };
 type TextBlock = { kind: "text"; runs: Run[]; align: Align; size: number; bold: boolean; bullet?: string | undefined; space: number };
 type Block =
   | TextBlock
-  | { kind: "row"; cells: Run[][]; header: boolean; equal: boolean }
+  | { kind: "row"; cells: Run[][]; header: boolean; equal: boolean; aligns: Align[] }
   | { kind: "hr" }
-  | { kind: "signature"; align: Align; who: "kalab" | "dean" };
+  | { kind: "signature"; align: Align; who: "kalab" | "dean"; col: "left" | "right" | null };
 
 const BLOCK_STYLE: Record<string, { size: number; bold: boolean; space: number }> = {
   h1: { size: 17, bold: true, space: 10 },
@@ -55,7 +55,8 @@ export function parseHtml(input: string): Block[] {
   const lists: { ordered: boolean; n: number }[] = [];
   let bold = 0;
   let current: TextBlock | null = null;
-  let row: { cells: Run[][]; header: boolean; equal: boolean } | null = null;
+  let row: { cells: Run[][]; header: boolean; equal: boolean; aligns: Align[] } | null = null;
+  let cellAlign: Align = "left";
   let cell: Run[] | null = null;
 
   const align = () => alignStack[alignStack.length - 1]!;
@@ -114,12 +115,15 @@ export function parseHtml(input: string): Block[] {
       } else if (tag === "tr") {
         flush();
         // data-equal: equal-width columns without the label layout (used for the signature block).
-        row = { cells: [], header: false, equal: /data-equal/.test(attrs) };
+        row = { cells: [], header: false, equal: /data-equal/.test(attrs), aligns: [] };
       } else if (tag === "td") {
         cell = [];
+        cellAlign = alignOf(attrs) ?? "left";
       } else if (tag === "img" && /data-signature/.test(attrs)) {
         flush();
-        blocks.push({ kind: "signature", align: align(), who: /data-signature="dean"/.test(attrs) ? "dean" : "kalab" });
+        // data-col="left|right" places the signature in the left or right half of the page (side by side).
+        const col = /data-col="left"/.test(attrs) ? "left" : /data-col="right"/.test(attrs) ? "right" : null;
+        blocks.push({ kind: "signature", align: align(), who: /data-signature="dean"/.test(attrs) ? "dean" : "kalab", col });
       }
     } else {
       if (tag in BLOCK_STYLE) flush();
@@ -130,7 +134,10 @@ export function parseHtml(input: string): Block[] {
       else if (tag === "ol" || tag === "ul") lists.pop();
       else if (tag === "td" || tag === "th") {
         if (tag === "th") bold = Math.max(0, bold - 1);
-        if (row && cell) row.cells.push(cell);
+        if (row && cell) {
+          row.cells.push(cell);
+          row.aligns.push(cellAlign);
+        }
         cell = null;
       } else if (tag === "tr") {
         if (row) blocks.push({ kind: "row", ...row });
@@ -254,7 +261,8 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
         const scale = Math.min(h / img.height, 170 / img.width);
         const w = img.width * scale;
         const sh = img.height * scale;
-        const x = g.align === "right" ? MARGIN + width - w : g.align === "center" ? MARGIN + (width - w) / 2 : MARGIN;
+        const center = g.col === "left" ? MARGIN + width / 4 : g.col === "right" ? MARGIN + (3 * width) / 4 : null;
+        const x = center !== null ? center - w / 2 : g.align === "right" ? MARGIN + width - w : g.align === "center" ? MARGIN + (width - w) / 2 : MARGIN;
         page.drawImage(img, { x, y: y - sh, width: w, height: sh });
       }
       y -= h + 6;
@@ -271,8 +279,11 @@ export async function htmlToPdf(html: string, opts: RenderOptions = {}): Promise
       let x = MARGIN;
       wrapped.forEach((lines, i) => {
         y = top;
+        const cellW = colW[i]! - 8;
+        const ca = b.aligns[i] ?? "left";
         lines.forEach((l) => {
-          drawLine(l.words, x, size);
+          const lx = ca === "center" ? x + (cellW - l.width) / 2 : ca === "right" ? x + cellW - l.width : x;
+          drawLine(l.words, lx, size);
           y -= lh;
         });
         if (labelLayout && i === 0) page.drawText(":", { x: MARGIN + colW[0]! - 2, y: top, size, font: regular, color: ink });

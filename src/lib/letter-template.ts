@@ -34,6 +34,7 @@ export const PLACEHOLDERS = [
   "nama_kalab",
   "tanda_tangan",
   "tanda_tangan_dekan",
+  "nama_dekan",
 ] as const;
 
 export const JENIS_LABEL: Record<LetterKind, string> = {
@@ -64,7 +65,7 @@ export function itemsHtml(items: LetterItem[]): string {
  * Fills the template. `signatureHtml` replaces {{tanda_tangan}}: an `<img data-signature>`
  * marker for the PDF, or a blank space for the unsigned preview.
  */
-export function fillTemplate(template: string, data: LetterData, signatureHtml: string, deanSignatureHtml = ""): string {
+export function fillTemplate(template: string, data: LetterData, signatureHtml: string, deanSignatureHtml = "", deanName = ""): string {
   const values: Record<string, string> = {
     nomor_surat: escapeHtml(data.nomor_surat),
     nama_pemohon: escapeHtml(data.nama_pemohon),
@@ -79,6 +80,7 @@ export function fillTemplate(template: string, data: LetterData, signatureHtml: 
     nama_kalab: escapeHtml(data.nama_kalab),
     tanda_tangan: signatureHtml,
     tanda_tangan_dekan: deanSignatureHtml,
+    nama_dekan: escapeHtml(deanName || "(………………………………)"),
   };
   return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, key: string) => values[key] ?? m);
 }
@@ -104,8 +106,8 @@ export function letterNumber(seq: number, kind: LetterKind, issuedAt: Date): str
   return `${String(seq).padStart(3, "0")}/SILAB-${kind === "lab" ? "LAB" : "PNJ"}/${ROMAN[d.getUTCMonth()]}/${d.getUTCFullYear()}`;
 }
 
-export const SIGNATURE_MARKER = '<img data-signature="1" />';
-export const DEAN_SIGNATURE_MARKER = '<img data-signature="dean" />';
+export const SIGNATURE_MARKER = '<img data-signature="1" data-col="right" />';
+export const DEAN_SIGNATURE_MARKER = '<img data-signature="dean" data-col="left" />';
 
 /** Normalized request data shared by the browser preview and the server PDF. */
 export type LetterSource = {
