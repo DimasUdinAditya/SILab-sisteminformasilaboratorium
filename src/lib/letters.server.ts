@@ -134,7 +134,8 @@ export async function issueLetter(kind: LetterKind, id: string) {
     .gte("issued_at", `${year}-01-01T00:00:00+07:00`);
   const number = letterNumber((count ?? 0) + 1, kind, now);
 
-  const html = fillTemplate(template.template_html, toLetterData({ ...req.source, number }), SIGNATURE_MARKER);
+  // The Dekan name is printed even before the endorsement: the active Dekan account on file.
+  const html = fillTemplate(template.template_html, toLetterData({ ...req.source, number }), SIGNATURE_MARKER, "", await activeDekanName());
   const pdf = await htmlToPdf(html, {
     signature: { bytes: sigBytes, mime },
     footer: `Surat resmi SiLab · ${number} · ditandatangani secara elektronik oleh Kepala Laboratorium`,
@@ -175,6 +176,12 @@ export async function issueLetter(kind: LetterKind, id: string) {
     link_url: kind === "lab" ? `/laboratorium/pengajuan/${id}` : `/peminjaman/${id}`,
   });
   return doc;
+}
+
+/** Name of the active Dekan account, used on letters. */
+async function activeDekanName(): Promise<string> {
+  const { data } = await supabaseAdmin.from("profiles").select("name, roles!inner(code)").eq("roles.code", "dekan").eq("is_active", true).limit(1).maybeSingle();
+  return data?.name ?? "";
 }
 
 /**
