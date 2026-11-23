@@ -31,7 +31,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { meQueryOptions, type Me } from "@/lib/profile";
 import { APP_ROLES, ROLE_LABELS } from "@/lib/roles";
-import { STEP_LABELS, summarizeStudentModules } from "@/lib/vlab";
+import { formatDate, STEP_LABELS, summarizeStudentModules } from "@/lib/vlab";
 import { studentModulesQuery } from "@/lib/vlab-queries";
 
 
@@ -146,7 +146,10 @@ function DosenDashboard({ me, first }: { me: Me; first: string }) {
           .from("lecturer_assignments")
           .select("id, academic_year, courses(code, name, semester)")
           .eq("lecturer_id", me.id),
-        supabase.from("modules").select("status"),
+        supabase
+          .from("modules")
+          .select("id, title, status, updated_at, courses(code)")
+          .order("updated_at", { ascending: false }),
         supabase.from("assessment_attempts").select("id", { count: "exact", head: true }).eq("status", "waiting_review"),
       ]);
       const mods = m.data ?? [];
@@ -154,6 +157,7 @@ function DosenDashboard({ me, first }: { me: Me; first: string }) {
         assignments: a.data ?? [],
         published: mods.filter((x) => x.status === "Published").length,
         draft: mods.filter((x) => x.status === "Draft").length,
+        recent: mods.slice(0, 5),
         waiting: w.count ?? 0,
       };
     },
@@ -166,6 +170,28 @@ function DosenDashboard({ me, first }: { me: Me; first: string }) {
         <StatCard label="Modul Published" value={data?.published ?? "…"} icon={BookOpenCheck} />
         <StatCard label="Modul Draft" value={data?.draft ?? "…"} icon={BookOpen} />
         <StatCard label="Esai menunggu koreksi" value={data?.waiting ?? "…"} icon={ClipboardList} />
+      </div>
+      <div className="mt-6 rounded-xl border bg-card p-6 shadow-card">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold">Modul terakhir dikelola</h2>
+          <Link to="/kelola-modul" className="text-sm font-medium text-secondary hover:underline">
+            Kelola modul
+          </Link>
+        </div>
+        {data && data.recent.length === 0 && <p className="text-sm text-muted-foreground">Belum ada modul.</p>}
+        <ul className="divide-y">
+          {data?.recent.map((x) => (
+            <li key={x.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{x.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {x.courses?.code ?? "-"} · Diperbarui {formatDate(x.updated_at, true)}
+                </p>
+              </div>
+              <StatusBadge label={x.status === "Published" ? "Published" : "Draft"} tone={x.status === "Published" ? "success" : "neutral"} />
+            </li>
+          ))}
+        </ul>
       </div>
       {!!data?.waiting && (
         <Link

@@ -28,7 +28,7 @@ export const MATERIAL_TYPE_LABELS: Record<MaterialType, string> = {
   text: "Teks",
   image: "Gambar",
   diagram: "Diagram",
-  pdf: "PDF",
+  pdf: "Dokumen",
   reference: "Referensi",
   hotspot: "Gambar Hotspot",
 };
@@ -301,3 +301,23 @@ export function summarizeStudentModules<
   });
 }
 
+
+// ---------------------------------------------------------------- referensi terstruktur
+
+export const REFERENCE_KINDS = ["Buku", "Jurnal Scopus", "Jurnal Nasional/Umum", "Lainnya"] as const;
+export type ReferenceKind = (typeof REFERENCE_KINDS)[number];
+export type ReferenceItem = { title: string; url: string; kind: ReferenceKind };
+
+/** Reference materials store a JSON list in `content`. Older content (HTML) is returned as null. */
+export function parseReferences(content: string | null | undefined): ReferenceItem[] | null {
+  if (!content) return null;
+  try {
+    const v = JSON.parse(content);
+    if (!Array.isArray(v)) return null;
+    return v
+      .filter((r) => r && typeof r.title === "string")
+      .map((r) => ({ title: String(r.title), url: String(r.url ?? ""), kind: (REFERENCE_KINDS as readonly string[]).includes(r.kind) ? r.kind : "Lainnya" }));
+  } catch {
+    return null;
+  }
+}

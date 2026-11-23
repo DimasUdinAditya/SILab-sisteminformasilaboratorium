@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { errorMessage, MATERIAL_TYPE_LABELS, parseSteps, type MaterialType } from "@/lib/vlab";
+import { errorMessage, MATERIAL_TYPE_LABELS, parseReferences, parseSteps, REFERENCE_KINDS, type MaterialType, type ReferenceItem } from "@/lib/vlab";
 
 type Material = EditorModule["materials"][number];
 type Asset = { id: string; file_url: string; type: string; mime_type: string | null } | null;
@@ -40,6 +40,9 @@ const TYPE_ICON: Record<MaterialType, typeof Type> = {
   hotspot: MapPin,
 };
 const NEEDS_FILE: MaterialType[] = ["image", "diagram", "pdf", "hotspot"];
+// Jenis yang bisa dipilih dosen. Image dan diagram tetap terbaca untuk materi lama.
+const CHOICES: MaterialType[] = ["text", "pdf", "hotspot", "reference"];
+const DOCUMENT_ACCEPT = "application/pdf,.pdf,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx";
 
 export function MaterialsTab({ module }: { module: EditorModule }) {
   const refresh = useEditorRefresh(module.id);
@@ -89,9 +92,7 @@ export function MaterialsTab({ module }: { module: EditorModule }) {
                   <Icon className="size-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
-                    {i + 1}. {m.title}
-                  </p>
+                  <p className="truncate font-medium">{m.title}</p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     <StatusBadge label={MATERIAL_TYPE_LABELS[m.type]} tone="info" />
                     {m.type === "hotspot" && <StatusBadge label={`${m.hotspots.length} titik`} tone="neutral" />}
@@ -166,15 +167,18 @@ function MaterialDialog({
   const [title, setTitle] = useState(material?.title ?? "");
   const [type, setType] = useState<MaterialType>(material?.type ?? "text");
   const [content, setContent] = useState(material?.content ?? "");
+  const [refs, setRefs] = useState<ReferenceItem[]>(parseReferences(material?.content) ?? [{ title: "", url: "", kind: "Buku" }]);
   const [asset, setAsset] = useState<Asset>(material?.media_assets ?? null);
   const [busy, setBusy] = useState(false);
 
   async function save() {
     if (!title.trim()) return void toast.error("Judul materi wajib diisi.");
     if (NEEDS_FILE.includes(type) && !asset) return void toast.error("Unggah file untuk materi ini.");
-    if ((type === "text" || type === "reference") && isEmptyHtml(content)) return void toast.error("Isi materi wajib diisi.");
+    if (type === "text" && isEmptyHtml(content)) return void toast.error("Isi materi wajib diisi.");
+    if (type === "reference" && refs.some((r) => !r.title.trim() || !r.url.trim())) return void toast.error("Setiap referensi wajib memiliki judul dan tautan.");
     setBusy(true);
-    const row = { title: title.trim(), type, content: isEmptyHtml(content) ? null : content, media_asset_id: asset?.id ?? null };
+    const body = type === "reference" ? JSON.stringify(refs.map((r) => ({ ...r, title: r.title.trim(), url: r.url.trim() }))) : isEmptyHtml(content) ? null : content;
+    const row = { title: title.trim(), type, content: body, media_asset_id: asset?.id ?? null };
     const res = material
       ? await supabase.from("materials").update(row).eq("id", material.id).select("id").single()
       : await supabase.from("materials").insert({ ...row, module_id: module.id, sort_order: nextOrder }).select("id").single();
@@ -186,13 +190,16 @@ function MaterialDialog({
     await onSaved(res.data.id, keepOpen);
   }
 
-  const accept = type === "pdf" ? "application/pdf" : "image/*";
+  const accept = type === "pdf" ? DOCUMENT_ACCEPT : "image/*";
+  const isNewHotspot = type === "hotspot" && !material;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{material ? "Edit materi" : "Tambah materi"}</DialogTitle>
-          <DialogDescription>Semua file disimpan privat dan hanya dapat dibuka mahasiswa yang punya akses modul.</DialogDescription>
+          <DialogDescription>
+            {isNewHotspot ? "Langkah 1 dari 2: unggah gambar, lalu pilih Selanjutnya untuk menentukan titik." : "Semua file disimpan privat dan hanya dapat dibuka mahasiswa yang punya akses modul."}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-[1fr_200px]">
@@ -207,7 +214,7 @@ function MaterialDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(MATERIAL_TYPE_LABELS) as MaterialType[]).map((t) => (
+                  {CHOICES.concat(CHOICES.includes(type) ? [] : [type]).map((t) => (
                     <SelectItem key={t} value={t}>
                       {MATERIAL_TYPE_LABELS[t]}
                     </SelectItem>
@@ -218,23 +225,25 @@ function MaterialDialog({
           </div>
           {NEEDS_FILE.includes(type) && (
             <div className="space-y-2">
-              <Label>{type === "pdf" ? "File PDF" : "Gambar"}</Label>
+              <Label>{type === "pdf" ? "Dokumen" : "Gambar"}</Label>
               {type === "hotspot" && material && asset ? (
                 <p className="text-xs text-muted-foreground">Gambar hotspot sudah terpasang. Kelola titiknya di bawah.</p>
               ) : (
-                <MediaUpload value={asset} onChange={setAsset} accept={accept} label={type === "pdf" ? "Unggah PDF" : "Unggah gambar"} />
+                <MediaUpload value={asset} onChange={setAsset} accept={accept} label={type === "pdf" ? "Unggah dokumen (PDF, PPT, PPTX)" : "Unggah gambar"} />
               )}
             </div>
           )}
-          <div className="space-y-2">
-            <Label>
-              {type === "text" ? "Isi materi" : type === "reference" ? "Daftar referensi" : "Keterangan (opsional)"}
-            </Label>
-            <RichTextEditor value={content} onChange={setContent} minHeight={type === "text" ? 220 : 100} />
-            {type === "reference" && (
-              <p className="text-xs text-muted-foreground">Tulis sumber bacaan. Gunakan tombol tautan untuk menautkan alamat web.</p>
-            )}
-          </div>
+          {type === "reference" ? (
+            <div className="space-y-2">
+              <Label>Daftar referensi</Label>
+              <ReferenceForm value={refs} onChange={setRefs} />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>{type === "text" ? "Isi materi" : "Keterangan (opsional)"}</Label>
+              <RichTextEditor value={content} onChange={setContent} minHeight={type === "text" ? 220 : 100} />
+            </div>
+          )}
           {type === "hotspot" && material && (
             <HotspotEditor material={material} onChanged={() => onSaved(material.id, true)} />
           )}
@@ -244,7 +253,7 @@ function MaterialDialog({
             Tutup
           </Button>
           <Button onClick={save} disabled={busy}>
-            {busy && <Loader2 className="animate-spin" />} Simpan materi
+            {busy && <Loader2 className="animate-spin" />} {isNewHotspot ? "Selanjutnya" : "Simpan materi"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -331,6 +340,54 @@ function HotspotEditor({ material, onChanged }: { material: Material; onChanged:
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ReferenceForm({ value, onChange }: { value: ReferenceItem[]; onChange: (v: ReferenceItem[]) => void }) {
+  const update = (i: number, patch: Partial<ReferenceItem>) => onChange(value.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  return (
+    <div className="space-y-3">
+      {value.map((r, i) => (
+        <div key={i} className="space-y-3 rounded-lg border p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Referensi {i + 1}</p>
+            {value.length > 1 && (
+              <Button variant="ghost" size="icon" aria-label={`Hapus referensi ${i + 1}`} onClick={() => onChange(value.filter((_, j) => j !== i))}>
+                <Trash2 className="text-destructive" />
+              </Button>
+            )}
+          </div>
+          <div className="grid gap-3 md:grid-cols-[1fr_200px]">
+            <div className="space-y-1.5">
+              <Label htmlFor={`ref-title-${i}`}>Judul referensi</Label>
+              <Input id={`ref-title-${i}`} value={r.title} maxLength={300} onChange={(e) => update(i, { title: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Jenis referensi</Label>
+              <Select value={r.kind} onValueChange={(v) => update(i, { kind: v as ReferenceItem["kind"] })}>
+                <SelectTrigger aria-label={`Jenis referensi ${i + 1}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {REFERENCE_KINDS.map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {k}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor={`ref-url-${i}`}>Link / URL</Label>
+            <Input id={`ref-url-${i}`} type="url" placeholder="https://" value={r.url} maxLength={2000} onChange={(e) => update(i, { url: e.target.value })} />
+          </div>
+        </div>
+      ))}
+      <Button variant="outline" onClick={() => onChange([...value, { title: "", url: "", kind: "Buku" }])}>
+        <Plus /> Tambah referensi
+      </Button>
     </div>
   );
 }

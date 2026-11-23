@@ -3,7 +3,7 @@
 import { useParams, useSearch } from "@/lib/router-compat";
 import { Link, useNavigate } from "@/lib/router-compat";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Copy, Loader2, Rocket, Undo2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Copy, Eye, Loader2, Rocket, Save, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -99,6 +99,12 @@ export default function ModuleEditorPage() {
     await qc.invalidateQueries({ queryKey: ["vlab"] });
   }
 
+  // Perubahan di editor tersimpan saat diedit; tombol ini memuat ulang data dan menegaskan posisi draft.
+  async function saveDraft() {
+    await qc.invalidateQueries({ queryKey: ["vlab"] });
+    toast.success("Draft tersimpan. Modul tetap berstatus Draft sampai Anda mempublikasikannya.");
+  }
+
   async function unpublish() {
     setBusy(true);
     const { error } = await supabase.from("modules").update({ status: "Draft", updated_at: new Date().toISOString() }).eq("id", id);
@@ -123,6 +129,14 @@ export default function ModuleEditorPage() {
           <>
             <Button variant="outline" onClick={() => duplicate(id)}>
               <Copy /> Duplikat
+            </Button>
+            <Button variant="outline" onClick={saveDraft}>
+              <Save /> Simpan Draft
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/kelola-modul/$id/pratinjau" params={{ id }}>
+                <Eye /> Pratinjau Modul
+              </Link>
             </Button>
             {module.status === "Draft" ? (
               <Button onClick={() => setDialog("publish")}>

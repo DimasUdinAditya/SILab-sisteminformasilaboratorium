@@ -5,7 +5,7 @@ import { simulationDescription } from "@/components/vlab/editor/simulations-tab"
 import { HotspotImage } from "@/components/vlab/hotspot-image";
 import { EmbedView, MediaView } from "@/components/vlab/media-view";
 import { RichText } from "@/components/vlab/rich-text";
-import { MATERIAL_TYPE_LABELS, type MaterialType } from "@/lib/vlab";
+import { MATERIAL_TYPE_LABELS, parseReferences, type MaterialType } from "@/lib/vlab";
 import type { StudentModuleData } from "@/lib/vlab-queries";
 
 const ICON: Record<MaterialType, typeof Type> = {
@@ -54,6 +54,18 @@ export function MaterialsView({ module }: { module: StudentModuleData }) {
                   </ol>
                 )}
               </div>
+            ) : m.type === "reference" && parseReferences(m.content) ? (
+              <ol className="space-y-3 text-sm">
+                {parseReferences(m.content)?.map((r, n) => (
+                  <li key={n} className="rounded-lg bg-muted/60 p-3">
+                    <p className="font-medium">{r.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{r.kind}</p>
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="mt-1 block break-all text-secondary hover:underline">
+                      {r.url}
+                    </a>
+                  </li>
+                ))}
+              </ol>
             ) : (
               <div className="space-y-4">
                 {m.media_assets && <MediaView asset={m.media_assets} alt={m.title} />}
