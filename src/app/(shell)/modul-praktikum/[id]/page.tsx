@@ -16,7 +16,9 @@ import {
   parseCompleted,
   parseSelfEvalItems,
   parseSteps,
+  parseStepRules,
   resumeStep,
+  stepLock,
   STEP_LABELS,
   type StepKey,
 } from "@/lib/vlab";
@@ -68,7 +70,8 @@ export default function ModuleDetailPage() {
   const steps = parseSteps(m.step_order);
   const done = parseCompleted(p?.completed_steps);
   const st = learningStatus(p);
-  const step = resumeStep(steps, done, p?.current_step);
+  const rules = parseStepRules(m.step_rules);
+  const step = resumeStep(steps, done, p?.current_step, rules);
 
   return (
     <div>
@@ -91,6 +94,7 @@ export default function ModuleDetailPage() {
             <ol className="space-y-3">
               {[...steps, "ringkasan" as const].map((s, i) => {
                 const isDone = s === "ringkasan" ? st.label === "Selesai" : done.includes(s);
+                const lock = isDone ? null : stepLock(steps, done, rules, s);
                 return (
                   <li key={s} className="flex items-start gap-3">
                     {isDone ? (
@@ -103,6 +107,12 @@ export default function ModuleDetailPage() {
                         {i + 1}. {STEP_LABELS[s]}
                       </p>
                       <p className="text-xs text-muted-foreground">{s === "ringkasan" ? "Rangkuman hasil belajar Anda" : stepInfo(m, s)}</p>
+                      {!isDone &&
+                        (lock ? (
+                          <p className="mt-1 text-xs text-warning">Terkunci. {lock}</p>
+                        ) : (
+                          <p className="mt-1 text-xs text-success">Terbuka</p>
+                        ))}
                     </div>
                   </li>
                 );

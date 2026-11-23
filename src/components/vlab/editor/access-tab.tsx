@@ -20,6 +20,7 @@ export function AccessTab({ module }: { module: EditorModule }) {
   const { data: access, isLoading, refetch } = useQuery(moduleAccessQuery(module.id));
   const { data: students } = useQuery({ ...prodiStudentsQuery(prodiId), enabled: !!prodiId });
   const [adding, setAdding] = useState(false);
+  const [prodiOpen, setProdiOpen] = useState(false);
   const [q, setQ] = useState("");
   const has = new Set((access ?? []).map((a) => a.student_id));
   const candidates = (students ?? []).filter((s) => s.is_active && !has.has(s.id));
@@ -52,8 +53,8 @@ export function AccessTab({ module }: { module: EditorModule }) {
       description="Saat Publish, semua mahasiswa aktif di prodi mata kuliah ini otomatis mendapat akses. Anda juga bisa menambah atau mencabut akses per mahasiswa."
       actions={
         <>
-          <Button variant="outline" disabled={!candidates.length} onClick={() => grant(candidates.map((c) => c.id))}>
-            <Users /> Beri akses seluruh prodi
+          <Button variant="outline" onClick={() => setProdiOpen(true)}>
+            <Users /> Beri akses per prodi
           </Button>
           <Button onClick={() => setAdding(true)}>
             <UserPlus /> Tambah mahasiswa
@@ -110,6 +111,20 @@ export function AccessTab({ module }: { module: EditorModule }) {
           </Table>
         </div>
       )}
+      {prodiOpen && (
+        <ProdiAccessDialog
+          defaultProdiId={prodiId}
+          existingIds={has}
+          onClose={() => setProdiOpen(false)}
+          onGranted={async (count) => {
+            setProdiOpen(false);
+            toast.success(`${count} mahasiswa mendapat akses.`);
+            await refetch();
+            await refresh(false);
+          }}
+          moduleId={module.id}
+        />
+      )}
       {adding && (
         <AddStudentsDialog
           candidates={candidates}
@@ -121,6 +136,102 @@ export function AccessTab({ module }: { module: EditorModule }) {
         />
       )}
     </SectionCard>
+  );
+}
+
+/** Gives access to every active student of the chosen prodi who does not have it yet. */
+function ProdiAccessDialog({
+  moduleId,
+  defaultProdiId,
+  existingIds,
+  onClose,
+  onGranted,
+}: {
+  moduleId: string;
+  defaultProdiId: string;
+  existingIds: Set<string>;
+  onClose: () => void;
+  onGranted: (count: number) => Promise<void>;
+}) {
+  const { data: prodis, isLoading } = useQuery({
+    queryKey: ["vlab", "prodi-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("program_studies").select("id, name").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(defaultProdiId ? [defaultProdiId] : []));
+  const [busy, setBusy] = useState(false);
+
+  async function grant() {
+    setBusy(true);
+    const ids = [...picked];
+    const { data: students, error } = await supabase
+      .from("profiles")
+      .select("id, roles!inner(code)")
+      .eq("roles.code", "mahasiswa")
+      .eq("is_active", true)
+      .in("program_study_id", ids);
+    if (error) {
+      setBusy(false);
+      return void toast.error(errorMessage(error));
+    }
+    const newIds = (students ?? []).map((s) => s.id).filter((id) => !existingIds.has(id));
+    if (newIds.length) {
+      const { error: insErr } = await supabase
+        .from("module_access")
+        .insert(newIds.map((student_id) => ({ module_id: moduleId, student_id })));
+      if (insErr) {
+        setBusy(false);
+        return void toast.error(errorMessage(insErr));
+      }
+    }
+    setBusy(false);
+    await onGranted(newIds.length);
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Beri akses per prodi</DialogTitle>
+          <DialogDescription>
+            Pilih program studi. Mahasiswa aktif di prodi terpilih yang belum punya akses akan mendapatkannya.
+          </DialogDescription>
+        </DialogHeader>
+        {isLoading && <p className="text-sm text-muted-foreground">Memuat…</p>}
+        <div className="max-h-72 space-y-1 overflow-y-auto">
+          {prodis?.map((p) => (
+            <label key={p.id} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-muted">
+              <Checkbox
+                checked={picked.has(p.id)}
+                onCheckedChange={(v) =>
+                  setPicked((cur) => {
+                    const n = new Set(cur);
+                    if (v === true) n.add(p.id);
+                    else n.delete(p.id);
+                    return n;
+                  })
+                }
+              />
+              <span className="text-sm font-medium">
+                {p.name}
+                {p.id === defaultProdiId && <span className="ml-2 text-xs text-muted-foreground">(prodi mata kuliah)</span>}
+              </span>
+            </label>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Batal
+          </Button>
+          <Button disabled={!picked.size || busy} onClick={grant}>
+            {busy && <Loader2 className="animate-spin" />} Beri akses
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

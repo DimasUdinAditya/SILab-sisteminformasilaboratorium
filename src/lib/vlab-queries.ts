@@ -155,7 +155,7 @@ export const studentModulesQuery = queryOptions({
     const { data, error } = await supabase
       .from("modules")
       .select(
-        "id, title, description, step_order, published_at, courses(code, name), learning_progress(percent, current_step, completed_steps, last_accessed_at, completed_at), assessments(id, type, assessment_attempts(status, total_score))",
+        "id, title, description, step_order, step_rules, published_at, courses(code, name), learning_progress(percent, current_step, completed_steps, last_accessed_at, completed_at), assessments(id, type, assessment_attempts(status, total_score))",
       )
       .eq("status", "Published")
       .order("published_at", { ascending: false });
@@ -168,7 +168,7 @@ async function fetchStudentModule(id: string) {
       const { data, error } = await supabase
         .from("modules")
         .select(
-          `id, title, description, step_order, published_at, courses(code, name),
+          `id, title, description, step_order, step_rules, published_at, courses(code, name),
           materials(*, ${MEDIA}, hotspots(*)),
           procedures(*, ${MEDIA}),
           simulations(*, ${MEDIA}),

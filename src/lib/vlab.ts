@@ -70,10 +70,76 @@ export function parseCompleted(value: unknown): string[] {
 }
 
 /** Step to reopen on "Lanjutkan Belajar": the saved step, else the first unfinished one. */
-export function resumeStep(steps: StepKey[], completed: string[], current: string | null | undefined): LearnStep {
-  if (current && (current === "ringkasan" || (steps as string[]).includes(current)) && canOpenStep(steps, completed, current as LearnStep))
+export function resumeStep(steps: StepKey[], completed: string[], current: string | null | undefined, rules: StepRules = {}): LearnStep {
+  if (current && (current === "ringkasan" || (steps as string[]).includes(current)) && canOpenStep(steps, completed, current as LearnStep, rules))
     return current as LearnStep;
   return steps.find((s) => !completed.includes(s)) ?? "ringkasan";
+}
+
+// ---------------------------------------------------------------- aturan buka tahapan
+
+export type UnlockMode = "always" | "after_previous" | "after_step";
+export type StepRule = { mode: UnlockMode; after?: StepKey };
+export type StepRules = Partial<Record<StepKey, StepRule>>;
+
+export const UNLOCK_MODE_LABELS: Record<UnlockMode, string> = {
+  always: "Selalu terbuka",
+  after_previous: "Setelah tahap sebelumnya",
+  after_step: "Setelah tahap tertentu",
+};
+
+/** Reads modules.step_rules. Unknown or invalid entries are dropped, so those steps use the default. */
+export function parseStepRules(value: unknown): StepRules {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const raw = value as Record<string, unknown>;
+  const out: StepRules = {};
+  for (const key of DEFAULT_STEPS) {
+    const r = raw[key];
+    if (!r || typeof r !== "object") continue;
+    const mode = (r as { mode?: unknown }).mode;
+    if (mode === "always" || mode === "after_previous") {
+      out[key] = { mode };
+    } else if (mode === "after_step") {
+      const after = (r as { after?: unknown }).after;
+      if (typeof after === "string" && (DEFAULT_STEPS as string[]).includes(after) && after !== key) {
+        out[key] = { mode, after: after as StepKey };
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Why a step is still locked for a student, as a requirement sentence. Null means it can be opened.
+ * "after_step" only counts a step that comes earlier in the order, so the rules cannot deadlock.
+ */
+export function stepLock(steps: StepKey[], completed: string[], rules: StepRules, step: LearnStep): string | null {
+  if (step === "ringkasan") {
+    return steps.every((s) => completed.includes(s)) ? null : "Selesaikan semua tahap terlebih dahulu.";
+  }
+  const idx = steps.indexOf(step);
+  if (idx < 0) return "Tahap ini tidak dipakai di modul ini.";
+  const rule = rules[step];
+  if (rule?.mode === "always") return null;
+  const afterIdx = rule?.mode === "after_step" && rule.after ? steps.indexOf(rule.after) : -1;
+  const need = afterIdx >= 0 && afterIdx < idx ? steps[afterIdx] : idx > 0 ? steps[idx - 1] : undefined;
+  if (!need || completed.includes(need)) return null;
+  return `Selesaikan ${STEP_LABELS[need]} terlebih dahulu.`;
+}
+
+/** Keeps rules only for the steps in use and points "after_step" at an earlier step in use. */
+export function normalizeStepRules(steps: StepKey[], rules: StepRules): StepRules {
+  const out: StepRules = {};
+  steps.forEach((s, idx) => {
+    const r = rules[s] ?? { mode: "after_previous" as const };
+    if (r.mode === "after_step") {
+      const afterIdx = r.after ? steps.indexOf(r.after) : -1;
+      out[s] = afterIdx >= 0 && afterIdx < idx ? { mode: "after_step", after: r.after } : { mode: "after_previous" };
+    } else {
+      out[s] = { mode: r.mode };
+    }
+  });
+  return out;
 }
 
 /** Percent of finished steps, mirrors public.record_progress(). */
@@ -177,11 +243,9 @@ export function errorMessage(e: unknown): string {
 // ---------------------------------------------------------------- learning rules
 
 /** A step can be opened once every step before it is finished; Ringkasan opens when all are done. */
-export function canOpenStep(steps: StepKey[], completed: string[], step: LearnStep): boolean {
-  if (step === "ringkasan") return steps.every((s) => completed.includes(s));
-  const idx = steps.indexOf(step);
-  if (idx < 0) return false;
-  return steps.slice(0, idx).every((s) => completed.includes(s));
+export function canOpenStep(steps: StepKey[], completed: string[], step: LearnStep, rules: StepRules = {}): boolean {
+  if (step !== "ringkasan" && !steps.includes(step)) return false;
+  return stepLock(steps, completed, rules, step) === null;
 }
 
 export function nextStep(steps: StepKey[], step: LearnStep): LearnStep | null {
@@ -279,6 +343,7 @@ export function formatDate(value: string | null | undefined, withTime = false): 
 export function summarizeStudentModules<
   M extends {
     step_order: unknown;
+    step_rules?: unknown;
     learning_progress: { percent: number; current_step: string | null; completed_steps: unknown; last_accessed_at: string; completed_at: string | null }[];
     assessments: { type: AssessmentType; assessment_attempts: { status: AttemptStatus; total_score: number | null }[] }[];
   },
@@ -296,7 +361,7 @@ export function summarizeStudentModules<
       pre: bestScore(att("pre_test")),
       post: bestScore(att("post_test")),
       waiting: [...att("pre_test"), ...att("post_test")].some((a) => a.status === "waiting_review"),
-      step: resumeStep(parseSteps(m.step_order), parseCompleted(p?.completed_steps), p?.current_step),
+      step: resumeStep(parseSteps(m.step_order), parseCompleted(p?.completed_steps), p?.current_step, parseStepRules(m.step_rules)),
     };
   });
 }

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { learningStatus, parseCompleted, parseSteps, resumeStep } from "@/lib/vlab";
+import { learningStatus, parseCompleted, parseStepRules, parseSteps, resumeStep } from "@/lib/vlab";
 import { studentModulesQuery } from "@/lib/vlab-queries";
 
 
@@ -62,7 +62,7 @@ export default function CatalogPage() {
           const p = m.learning_progress[0];
           const st = learningStatus(p);
           const pct = Number(p?.percent ?? 0);
-          const step = resumeStep(parseSteps(m.step_order), parseCompleted(p?.completed_steps), p?.current_step);
+          const step = resumeStep(parseSteps(m.step_order), parseCompleted(p?.completed_steps), p?.current_step, parseStepRules(m.step_rules));
           return (
             <div key={m.id} className="flex flex-col rounded-xl border bg-card p-5 shadow-card">
               <div className="mb-2 flex items-start justify-between gap-2">

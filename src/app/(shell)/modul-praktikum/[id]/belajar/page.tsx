@@ -28,9 +28,11 @@ import {
   parseCompleted,
   parseSelfEvalItems,
   parseSteps,
+  parseStepRules,
   passed,
   prevStep,
   resumeStep,
+  stepLock,
   STEP_LABELS,
   type LearnStep,
 } from "@/lib/vlab";
@@ -72,9 +74,10 @@ function Learn({ module: m, progress }: { module: StudentModuleData; progress: P
   const navigate = useNavigate();
   const qc = useQueryClient();
   const steps = parseSteps(m.step_order);
+  const rules = parseStepRules(m.step_rules);
   const done = parseCompleted(progress?.completed_steps);
-  const fallback = resumeStep(steps, done, progress?.current_step);
-  const step: LearnStep = wanted && canOpenStep(steps, done, wanted) ? wanted : fallback;
+  const fallback = resumeStep(steps, done, progress?.current_step, rules);
+  const step: LearnStep = wanted && canOpenStep(steps, done, wanted, rules) ? wanted : fallback;
   const [busy, setBusy] = useState(false);
   const lastSaved = useRef<string | null>(null);
 
@@ -149,7 +152,8 @@ function Learn({ module: m, progress }: { module: StudentModuleData; progress: P
           <nav aria-label="Tahapan belajar" className="mt-4">
             <ol className="space-y-1">
               {[...steps, "ringkasan" as const].map((s, i) => {
-                const open = canOpenStep(steps, done, s);
+                const open = canOpenStep(steps, done, s, rules);
+                const requirement = open ? null : stepLock(steps, done, rules, s);
                 const isDone = s !== "ringkasan" && done.includes(s);
                 const active = s === step;
                 const Icon = isDone ? CheckCircle2 : open ? Circle : Lock;
@@ -171,6 +175,11 @@ function Learn({ module: m, progress }: { module: StudentModuleData; progress: P
                       </span>
                       <span className="sr-only">{isDone ? "selesai" : open ? "terbuka" : "terkunci"}</span>
                     </button>
+                    {requirement && (
+                      <p className="px-2.5 pb-1 pt-0.5 text-xs text-muted-foreground">
+                        <span className="font-medium">Terkunci.</span> {requirement}
+                      </p>
+                    )}
                   </li>
                 );
               })}

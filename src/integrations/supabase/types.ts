@@ -1267,6 +1267,7 @@ export type Database = {
           published_by: string | null
           status: Database["public"]["Enums"]["module_status"]
           step_order: Json
+          step_rules: Json
           title: string
           updated_at: string
         }
@@ -1279,6 +1280,7 @@ export type Database = {
           published_by?: string | null
           status?: Database["public"]["Enums"]["module_status"]
           step_order?: Json
+          step_rules?: Json
           title: string
           updated_at?: string
         }
@@ -1291,6 +1293,7 @@ export type Database = {
           published_by?: string | null
           status?: Database["public"]["Enums"]["module_status"]
           step_order?: Json
+          step_rules?: Json
           title?: string
           updated_at?: string
         }
