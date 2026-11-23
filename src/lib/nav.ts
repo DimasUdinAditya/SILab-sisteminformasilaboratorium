@@ -39,6 +39,7 @@ const I = {
   dashboardMonitoring: { title: "Dashboard Monitoring", to: "/dashboard", icon: GaugeCircle },
   modulPraktikum: { title: "Modul Praktikum", to: "/modul-praktikum", icon: BookOpen },
   progresBelajar: { title: "Progres Belajar", to: "/progres-belajar", icon: TrendingUp },
+  simulasiPraktikum: { title: "Simulasi Praktikum", to: "/simulasi-praktikum", icon: MonitorPlay },
   laboratorium: { title: "Laboratorium", to: "/laboratorium", icon: FlaskConical },
   peminjaman: { title: "Peminjaman Alat & Bahan", to: "/peminjaman", icon: PackageOpen },
   notifikasi: { title: "Notifikasi", to: "/notifikasi", icon: Bell },
@@ -83,6 +84,7 @@ export const NAV: Record<AppRole, NavGroup[]> = {
   mahasiswa: [
     { label: "Utama", items: [I.dashboard] },
     { label: "Virtual Laboratory", items: [I.modulPraktikum, I.progresBelajar] },
+    { label: "Simulasi", items: [I.simulasiPraktikum] },
     { label: "Laboratory Management", items: [I.laboratorium, I.peminjaman] },
     akun(),
   ],

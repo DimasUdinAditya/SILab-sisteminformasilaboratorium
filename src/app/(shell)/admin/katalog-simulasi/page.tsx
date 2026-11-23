@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/app/page-header";
 import { StatusBadge } from "@/components/app/status-badge";
 import { EmbedView } from "@/components/vlab/media-view";
+import { MediaUpload } from "@/components/vlab/media-upload";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -181,6 +182,8 @@ function CatalogForm({
   const [url, setUrl] = useState(item?.external_url ?? "");
   const [displayMode, setDisplayMode] = useState<"embed" | "new_tab">(item?.display_mode === "new_tab" ? "new_tab" : "embed");
   const [description, setDescription] = useState(item?.description ?? "");
+  const [category, setCategory] = useState(item?.category ?? "");
+  const [thumb, setThumb] = useState(item?.thumbnail ?? null);
   const [busy, setBusy] = useState(false);
   const embed = url.trim() ? toEmbedUrl(url) : "";
 
@@ -194,6 +197,8 @@ function CatalogForm({
       external_url: embed,
       display_mode: displayMode,
       description: description.trim() || null,
+      category: category.trim() || null,
+      thumbnail_asset_id: thumb?.id ?? null,
       updated_at: new Date().toISOString(),
     };
     const { error } = item
@@ -237,6 +242,14 @@ function CatalogForm({
               placeholder="https://phet.colorado.edu/… atau kode <iframe>"
             />
             {embed && isSafeHttpUrl(embed) && <EmbedView url={embed} title={title || "Pratinjau"} />}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cat-category">Kategori</Label>
+            <Input id="cat-category" value={category} onChange={(e) => setCategory(e.target.value)} maxLength={80} placeholder="mis. Biologi, Kimia, Fisika" />
+          </div>
+          <div className="space-y-2">
+            <Label>Thumbnail (opsional)</Label>
+            <MediaUpload value={thumb} onChange={setThumb} accept="image/*" label="Unggah thumbnail" />
           </div>
           <div className="space-y-2">
             <Label>Tampilan untuk mahasiswa</Label>

@@ -1879,6 +1879,7 @@ export type Database = {
       }
       simulation_catalog: {
         Row: {
+          category: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1886,11 +1887,13 @@ export type Database = {
           external_url: string
           id: string
           is_active: boolean
+          thumbnail_asset_id: string | null
           title: string
           type: Database["public"]["Enums"]["simulation_type"]
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1898,11 +1901,13 @@ export type Database = {
           external_url: string
           id?: string
           is_active?: boolean
+          thumbnail_asset_id?: string | null
           title: string
           type: Database["public"]["Enums"]["simulation_type"]
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1910,6 +1915,7 @@ export type Database = {
           external_url?: string
           id?: string
           is_active?: boolean
+          thumbnail_asset_id?: string | null
           title?: string
           type?: Database["public"]["Enums"]["simulation_type"]
           updated_at?: string
