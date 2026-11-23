@@ -20,6 +20,8 @@ export function LabRequestBadge({ status }: { status: LabRequestStatus }) {
 
 export function BorrowingBadge({ status }: { status: BorrowingStatus }) {
   const m = BORROWING_STATUS_META[status];
+  // Diajukan dibuat abu-abu: teks abu tua di atas latar abu muda.
+  if (status === "Diajukan") return <StatusBadge label={m.label} tone="neutral" className="text-foreground/75" />;
   return <StatusBadge label={m.label} tone={m.tone} />;
 }
 

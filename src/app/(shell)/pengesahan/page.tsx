@@ -41,7 +41,8 @@ const queueQuery = (status: Status) => ({
         borrowing:equipment_borrowings(id, borrow_date, return_due_date, purpose, laboratories(name), borrower:profiles!equipment_borrowings_borrower_id_fkey(name, nim_nip), borrowing_items(id))`,
       )
       .eq("status", status)
-      .order(status === "Disahkan" ? "endorsed_at" : "created_at", { ascending: status !== "Disahkan" });
+      // Paling baru di atas, untuk kedua tab.
+      .order(status === "Disahkan" ? "endorsed_at" : "created_at", { ascending: false });
     if (error) throw error;
     return data;
   },

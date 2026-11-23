@@ -278,6 +278,12 @@ export function ConsumableDialog({
               <Input id="co-min" type="number" min={0} value={f.min} onChange={(e) => setF({ ...f, min: e.target.value })} />
             </div>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="co-desc">Deskripsi *</Label>
+            <Textarea id="co-desc" maxLength={500} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+          </div>
+          <PhotoField file={photo} onChange={setPhoto} label="Foto bahan *" />
+          {item?.photo_url && !photo && <p className="text-xs text-muted-foreground">Foto saat ini sudah tersimpan. Pilih file baru untuk menggantinya.</p>}
           {item && <p className="text-xs text-muted-foreground">Ubah jumlah stok lewat tombol Kelola Stok agar tercatat di riwayat.</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
