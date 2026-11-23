@@ -18,6 +18,7 @@ import {
   Library,
   type LucideIcon,
   Microscope,
+  MonitorPlay,
   Package,
   PackageOpen,
   ScrollText,
@@ -62,6 +63,7 @@ const I = {
   role: { title: "Manajemen Role", to: "/admin/role", icon: ShieldCheck },
   akademik: { title: "Master Data Akademik", to: "/admin/akademik", icon: Library },
   masterLab: { title: "Master Data Laboratorium", to: "/admin/laboratorium", icon: Building2 },
+  katalogSimulasi: { title: "Katalog Simulasi", to: "/admin/katalog-simulasi", icon: MonitorPlay },
   konfigurasi: { title: "Konfigurasi Sistem", to: "/admin/konfigurasi", icon: Settings },
   auditLog: { title: "Audit Log", to: "/admin/audit-log", icon: ScrollText },
 } satisfies Record<string, NavItem>;
@@ -111,7 +113,7 @@ export const NAV: Record<AppRole, NavGroup[]> = {
   super_admin: [
     { label: "Utama", items: [I.dashboard] },
     { label: "Administrasi", items: [I.pengguna, I.registrasi, I.role] },
-    { label: "Master Data", items: [I.akademik, I.masterLab] },
+    { label: "Master Data", items: [I.akademik, I.masterLab, I.katalogSimulasi] },
     { label: "Sistem", items: [I.konfigurasi, I.auditLog] },
     akun(false),
   ],

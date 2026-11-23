@@ -1874,9 +1874,50 @@ export type Database = {
           },
         ]
       }
+      simulation_catalog: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_mode: string
+          external_url: string
+          id: string
+          is_active: boolean
+          title: string
+          type: Database["public"]["Enums"]["simulation_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_mode?: string
+          external_url: string
+          id?: string
+          is_active?: boolean
+          title: string
+          type: Database["public"]["Enums"]["simulation_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_mode?: string
+          external_url?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          type?: Database["public"]["Enums"]["simulation_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       simulations: {
         Row: {
+          catalog_id: string | null
           config: Json | null
+          display_mode: string
           external_url: string | null
           id: string
           media_asset_id: string | null
@@ -1885,7 +1926,9 @@ export type Database = {
           type: Database["public"]["Enums"]["simulation_type"]
         }
         Insert: {
+          catalog_id?: string | null
           config?: Json | null
+          display_mode?: string
           external_url?: string | null
           id?: string
           media_asset_id?: string | null
@@ -1894,7 +1937,9 @@ export type Database = {
           type: Database["public"]["Enums"]["simulation_type"]
         }
         Update: {
+          catalog_id?: string | null
           config?: Json | null
+          display_mode?: string
           external_url?: string | null
           id?: string
           media_asset_id?: string | null

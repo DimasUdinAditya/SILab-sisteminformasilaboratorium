@@ -5,7 +5,7 @@ import { simulationDescription } from "@/components/vlab/editor/simulations-tab"
 import { HotspotImage } from "@/components/vlab/hotspot-image";
 import { EmbedView, MediaView } from "@/components/vlab/media-view";
 import { RichText } from "@/components/vlab/rich-text";
-import { MATERIAL_TYPE_LABELS, parseReferences, type MaterialType } from "@/lib/vlab";
+import { isSafeHttpUrl, MATERIAL_TYPE_LABELS, parseReferences, type MaterialType } from "@/lib/vlab";
 import type { StudentModuleData } from "@/lib/vlab-queries";
 
 const ICON: Record<MaterialType, typeof Type> = {
@@ -123,6 +123,15 @@ export function SimulationsView({ module }: { module: StudentModuleData }) {
             {desc && <p className="mb-4 whitespace-pre-line text-sm text-muted-foreground">{desc}</p>}
             {s.media_assets ? (
               <MediaView asset={s.media_assets} alt={s.title} />
+            ) : s.external_url && isSafeHttpUrl(s.external_url) && s.display_mode === "new_tab" ? (
+              <a
+                href={s.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Buka simulasi di tab baru
+              </a>
             ) : s.external_url ? (
               <EmbedView url={s.external_url} title={s.title} />
             ) : null}
